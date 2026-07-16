@@ -5,7 +5,8 @@
 .vscode
 build
 coverage
-docs
+docs/*
+!docs/superpowers/
 node_modules
 phpunit.xml
 phpstan.neon
