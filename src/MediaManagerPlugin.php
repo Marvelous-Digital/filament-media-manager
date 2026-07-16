@@ -1,20 +1,23 @@
 <?php
 
-namespace VendorName\Skeleton;
+namespace MarvelousDigital\FilamentMediaManager;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use MarvelousDigital\FilamentMediaManager\Pages\MediaLibrary;
 
-class SkeletonPlugin implements Plugin
+class MediaManagerPlugin implements Plugin
 {
     public function getId(): string
     {
-        return 'skeleton';
+        return 'filament-media-manager';
     }
 
     public function register(Panel $panel): void
     {
-        //
+        $panel->pages([
+            MediaLibrary::class,
+        ]);
     }
 
     public function boot(Panel $panel): void

@@ -5,6 +5,7 @@
 .vscode
 build
 coverage
+composer.lock
 docs/*
 !docs/superpowers/
 node_modules
