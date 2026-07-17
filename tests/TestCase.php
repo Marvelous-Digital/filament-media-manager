@@ -23,6 +23,8 @@ use MarvelousDigital\FilamentMediaManager\Tests\Fixtures\User;
 use Orchestra\Testbench\TestCase as Orchestra;
 use RyanChandler\BladeCaptureDirective\BladeCaptureDirectiveServiceProvider;
 
+use function Orchestra\Testbench\default_migration_path;
+
 class TestCase extends Orchestra
 {
     use RefreshDatabase;
@@ -80,7 +82,15 @@ class TestCase extends Orchestra
 
     protected function defineDatabaseMigrations(): void
     {
-        $this->loadLaravelMigrations();
+        // Route Laravel's default migrations (users, cache, jobs) through the same
+        // loadMigrationsFrom() path as the package migrations below. loadLaravelMigrations()
+        // runs eagerly via its own MigrateProcessor, outside of RefreshDatabase's migration
+        // path registration; when RefreshDatabase later runs `migrate:fresh` (triggered by
+        // the first database query of a test), it drops all tables and only re-applies
+        // migrations registered via loadMigrationsFrom()'s deferred path, so the eagerly
+        // created `users` table would be dropped and never recreated. Loading both sets of
+        // migrations the same way keeps them both known to `migrate:fresh`.
+        $this->loadMigrationsFrom(default_migration_path());
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
     }
 }
