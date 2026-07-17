@@ -63,10 +63,19 @@ class TestCase extends Orchestra
             FilamentServiceProvider::class,
             FormsServiceProvider::class,
             InfolistsServiceProvider::class,
-            LivewireServiceProvider::class,
             NotificationsServiceProvider::class,
             SchemasServiceProvider::class,
             SupportServiceProvider::class,
+            // LivewireServiceProvider must register after SupportServiceProvider: Filament's
+            // SupportServiceProvider::register() calls $app->bind(DataStore::class, ...)
+            // (non-singleton), which drops any prior singleton instance for that abstract.
+            // Livewire's own LivewireServiceProvider::registerMechanisms() binds DataStore
+            // as a singleton instance via app()->instance(...), which always wins over a
+            // later bind() call. Registering Livewire after Filament's Support provider
+            // ensures Livewire's singleton registration is the one that sticks — otherwise
+            // every DataStore resolution creates a fresh instance, silently discarding
+            // component state (e.g. error bags) and breaking every Livewire::test() call.
+            LivewireServiceProvider::class,
             TablesServiceProvider::class,
             WidgetsServiceProvider::class,
             MediaManagerServiceProvider::class,
@@ -78,6 +87,7 @@ class TestCase extends Orchestra
     {
         $app['config']->set('database.default', 'testing');
         $app['config']->set('image.default', 'gd');
+        $app['config']->set('app.key', 'base64:' . base64_encode(random_bytes(32)));
     }
 
     protected function defineDatabaseMigrations(): void
