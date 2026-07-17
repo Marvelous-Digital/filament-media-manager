@@ -2,10 +2,13 @@
 
 namespace MarvelousDigital\FilamentMediaManager\Pages;
 
+use Filament\Actions\Action;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Url;
 use Livewire\WithFileUploads;
@@ -46,6 +49,79 @@ class MediaLibrary extends Page
     public function getTitle(): string
     {
         return 'Media';
+    }
+
+    public function createFolderAction(): Action
+    {
+        return Action::make('createFolder')
+            ->label('New folder')
+            ->icon('heroicon-o-folder-plus')
+            ->color('gray')
+            ->modalHeading('New folder')
+            ->schema([
+                TextInput::make('name')
+                    ->required()
+                    ->maxLength(255)
+                    ->rules([
+                        fn () => Rule::unique('media_folders', 'name')->where('parent_id', $this->folderId),
+                    ]),
+            ])
+            ->action(function (array $data): void {
+                MediaFolder::create(['name' => $data['name'], 'parent_id' => $this->folderId]);
+            });
+    }
+
+    public function renameFolderAction(): Action
+    {
+        return Action::make('renameFolder')
+            ->label('Rename')
+            ->icon('heroicon-o-pencil')
+            ->modalHeading('Rename folder')
+            ->fillForm(fn (array $arguments): array => [
+                'name' => MediaFolder::find($arguments['folder'])?->name,
+            ])
+            ->schema(fn (array $arguments): array => [
+                TextInput::make('name')
+                    ->required()
+                    ->maxLength(255)
+                    ->rules([
+                        fn () => Rule::unique('media_folders', 'name')
+                            ->where('parent_id', MediaFolder::find($arguments['folder'])?->parent_id)
+                            ->ignore($arguments['folder']),
+                    ]),
+            ])
+            ->action(function (array $arguments, array $data): void {
+                MediaFolder::find($arguments['folder'])?->update(['name' => $data['name']]);
+            });
+    }
+
+    public function deleteFolderAction(): Action
+    {
+        return Action::make('deleteFolder')
+            ->label('Delete')
+            ->icon('heroicon-o-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading('Delete folder')
+            ->action(function (array $arguments): void {
+                $folder = MediaFolder::find($arguments['folder']);
+
+                if (! $folder) {
+                    return;
+                }
+
+                if (! $folder->isEmpty()) {
+                    Notification::make()
+                        ->title('Folder is not empty')
+                        ->body('Move or delete its contents first.')
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                $folder->delete();
+            });
     }
 
     public function currentFolder(): ?MediaFolder

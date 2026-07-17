@@ -29,7 +29,7 @@
                     placeholder="Search this folder…"
                     class="fmm-search fi-input"
                 />
-                {{-- @folder-actions --}}
+                {{ $this->createFolderAction }}
                 <div
                     x-data="{
                         progress: 0,
@@ -69,7 +69,12 @@
                         <x-filament::icon icon="heroicon-o-folder" class="fmm-folder-icon" />
                         <span class="fmm-card-name">{{ $folder->name }}</span>
                     </button>
-                    {{-- @folder-card-actions --}}
+                    <div class="fmm-card-menu">
+                        <x-filament::icon-button icon="heroicon-o-pencil" color="gray" size="sm" label="Rename"
+                            wire:click="mountAction('renameFolder', { folder: {{ $folder->id }} })" />
+                        <x-filament::icon-button icon="heroicon-o-trash" color="danger" size="sm" label="Delete"
+                            wire:click="mountAction('deleteFolder', { folder: {{ $folder->id }} })" />
+                    </div>
                 </div>
             @endforeach
 
