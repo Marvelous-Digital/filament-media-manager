@@ -5,11 +5,32 @@ namespace MarvelousDigital\FilamentMediaManager\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
 use MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus;
 use Throwable;
 
+/**
+ * @property int $id
+ * @property int|null $folder_id
+ * @property string $name
+ * @property string $file_name
+ * @property string $disk
+ * @property string $path
+ * @property string $mime_type
+ * @property MediaType $type
+ * @property int $size
+ * @property int|null $width
+ * @property int|null $height
+ * @property string|null $alt_text
+ * @property string|null $thumbnail_path
+ * @property ThumbnailStatus $thumbnail_status
+ * @property int|null $created_by
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read MediaFolder|null $folder
+ */
 class Media extends Model
 {
     use HasFactory;

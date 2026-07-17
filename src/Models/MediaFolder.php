@@ -2,11 +2,23 @@
 
 namespace MarvelousDigital\FilamentMediaManager\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property int|null $parent_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read self|null $parent
+ * @property-read Collection<int, self> $children
+ * @property-read Collection<int, Media> $media
+ */
 class MediaFolder extends Model
 {
     use HasFactory;

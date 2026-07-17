@@ -84,7 +84,7 @@ class MediaLibrary extends Page
             ->icon('heroicon-o-pencil')
             ->modalHeading('Rename folder')
             ->fillForm(fn (array $arguments): array => [
-                'name' => MediaFolder::find($arguments['folder'])?->name,
+                'name' => MediaFolder::find((int) $arguments['folder'])?->name,
             ])
             ->schema(fn (array $arguments): array => [
                 TextInput::make('name')
@@ -92,12 +92,12 @@ class MediaLibrary extends Page
                     ->maxLength(255)
                     ->rules([
                         fn () => Rule::unique('media_folders', 'name')
-                            ->where('parent_id', MediaFolder::find($arguments['folder'])?->parent_id)
+                            ->where('parent_id', MediaFolder::find((int) $arguments['folder'])?->parent_id)
                             ->ignore($arguments['folder']),
                     ]),
             ])
             ->action(function (array $arguments, array $data): void {
-                MediaFolder::find($arguments['folder'])?->update(['name' => $data['name']]);
+                MediaFolder::find((int) $arguments['folder'])?->update(['name' => $data['name']]);
             });
     }
 
@@ -110,7 +110,7 @@ class MediaLibrary extends Page
             ->requiresConfirmation()
             ->modalHeading('Delete folder')
             ->action(function (array $arguments): void {
-                $folder = MediaFolder::find($arguments['folder']);
+                $folder = MediaFolder::find((int) $arguments['folder']);
 
                 if (! $folder) {
                     return;
@@ -135,9 +135,9 @@ class MediaLibrary extends Page
         return Action::make('editMedia')
             ->label('Details')
             ->slideOver()
-            ->modalHeading(fn (array $arguments): string => Media::find($arguments['media'])?->name ?? 'Media')
+            ->modalHeading(fn (array $arguments): string => Media::find((int) $arguments['media'])->name ?? 'Media')
             ->fillForm(function (array $arguments): array {
-                $media = Media::find($arguments['media']);
+                $media = Media::find((int) $arguments['media']);
 
                 return [
                     'name' => $media?->name,
@@ -147,7 +147,7 @@ class MediaLibrary extends Page
             })
             ->schema(fn (array $arguments): array => [
                 View::make('filament-media-manager::media-details')
-                    ->viewData(['media' => Media::find($arguments['media'])]),
+                    ->viewData(['media' => Media::find((int) $arguments['media'])]),
                 TextInput::make('name')->required()->maxLength(255),
                 Textarea::make('alt_text')->label('Alt text')->rows(3)->maxLength(255),
                 Select::make('folder_id')
@@ -157,7 +157,7 @@ class MediaLibrary extends Page
                     ->nullable(),
             ])
             ->action(function (array $arguments, array $data): void {
-                Media::find($arguments['media'])?->update([
+                Media::find((int) $arguments['media'])?->update([
                     'name' => $data['name'],
                     'alt_text' => $data['alt_text'],
                     'folder_id' => $data['folder_id'],
@@ -173,7 +173,7 @@ class MediaLibrary extends Page
             ->color('danger')
             ->requiresConfirmation()
             ->action(function (array $arguments): void {
-                Media::find($arguments['media'])?->delete();
+                Media::find((int) $arguments['media'])?->delete();
             });
     }
 
@@ -183,7 +183,7 @@ class MediaLibrary extends Page
             ->label('Download')
             ->icon('heroicon-o-arrow-down-tray')
             ->action(function (array $arguments) {
-                $media = Media::find($arguments['media']);
+                $media = Media::find((int) $arguments['media']);
 
                 if (! $media) {
                     return null;
@@ -199,7 +199,7 @@ class MediaLibrary extends Page
             ->label('Retry thumbnail')
             ->icon('heroicon-o-arrow-path')
             ->action(function (array $arguments): void {
-                $media = Media::find($arguments['media']);
+                $media = Media::find((int) $arguments['media']);
 
                 if (! $media) {
                     return;

@@ -31,6 +31,7 @@
         "pestphp/pest-plugin-arch": "^3.0|^4.0",
         "pestphp/pest-plugin-laravel": "^3.0|^4.0",
         "pestphp/pest-plugin-livewire": "^3.0|^4.0",
+        "phpstan/extension-installer": "^1.4",
         "rector/rector": "^2.0",
         "spatie/laravel-ray": "^1.26"
     },
@@ -47,7 +48,7 @@
     },
     "scripts": {
         "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi",
-        "analyse": "phpstan analyse",
+        "analyse": "phpstan analyse --memory-limit=1G",
         "lint": "pint",
         "refactor": "rector",
         "test": "pest",
