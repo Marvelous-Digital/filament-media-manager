@@ -4,8 +4,8 @@
         x-data
         x-on:dragover.prevent
         x-on:drop.prevent="
-            const input = document.querySelector('.fmm-upload');
-            if (input) Alpine.$data(input).handleFiles($event.dataTransfer.files);
+            const uploadEl = document.querySelector('.fmm-upload');
+            if (uploadEl) Alpine.$data(uploadEl).handleFiles($event.dataTransfer.files);
         "
     >
         {{-- Toolbar --}}
@@ -45,7 +45,7 @@
                         },
                     }"
                     x-on:dragover.prevent
-                    x-on:drop.prevent="handleFiles($event.dataTransfer.files)"
+                    x-on:drop.prevent.stop="handleFiles($event.dataTransfer.files)"
                     class="fmm-upload"
                 >
                     <input type="file" multiple class="fmm-upload-input" x-ref="input" x-on:change="handleFiles($event.target.files); $event.target.value = null;" />
