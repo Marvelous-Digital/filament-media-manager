@@ -15,7 +15,7 @@ use Filament\Support\SupportServiceProvider;
 use Filament\Tables\TablesServiceProvider;
 use Filament\Widgets\WidgetsServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\LivewireServiceProvider;
 use MarvelousDigital\FilamentMediaManager\MediaManagerServiceProvider;
 use MarvelousDigital\FilamentMediaManager\Tests\Fixtures\AdminPanelProvider;
@@ -25,7 +25,7 @@ use RyanChandler\BladeCaptureDirective\BladeCaptureDirectiveServiceProvider;
 
 class TestCase extends Orchestra
 {
-    use LazilyRefreshDatabase;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {
