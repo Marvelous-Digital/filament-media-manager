@@ -97,7 +97,17 @@
                         </div>
                         <span class="fmm-card-name" title="{{ $media->file_name }}">{{ $media->name }}</span>
                     </div>
-                    {{-- @media-actions --}}
+                    <button type="button" class="fmm-card-overlay" wire:click="mountAction('editMedia', { media: {{ $media->id }} })" aria-label="Open details for {{ $media->name }}"></button>
+                    <div class="fmm-card-menu">
+                        <x-filament::icon-button icon="heroicon-o-arrow-down-tray" color="gray" size="sm" label="Download"
+                            wire:click="mountAction('downloadMedia', { media: {{ $media->id }} })" />
+                        @if ($media->thumbnail_status === \MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus::Failed)
+                            <x-filament::icon-button icon="heroicon-o-arrow-path" color="warning" size="sm" label="Retry thumbnail"
+                                wire:click="mountAction('retryThumbnail', { media: {{ $media->id }} })" />
+                        @endif
+                        <x-filament::icon-button icon="heroicon-o-trash" color="danger" size="sm" label="Delete"
+                            wire:click="mountAction('deleteMedia', { media: {{ $media->id }} })" />
+                    </div>
                 </div>
             @endforeach
         </div>

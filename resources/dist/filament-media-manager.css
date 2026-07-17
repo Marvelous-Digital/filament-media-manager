@@ -32,3 +32,11 @@
 .fmm-upload-progress { width: 8rem; height: 0.5rem; border-radius: 9999px; background: rgb(229 231 235); overflow: hidden; }
 .dark .fmm-upload-progress { background: rgb(55 65 81); }
 .fmm-upload-progress-bar { height: 100%; background: rgb(59 130 246); transition: width 150ms ease; }
+.fmm-card-overlay { position: absolute; inset: 0; cursor: pointer; }
+.fmm-card-menu { z-index: 1; }
+.fmm-details { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
+.fmm-details-preview { display: flex; justify-content: center; background: rgb(243 244 246); border-radius: 0.75rem; overflow: hidden; }
+.dark .fmm-details-preview { background: rgb(39 39 42); }
+.fmm-details-preview img { max-height: 20rem; object-fit: contain; }
+.fmm-details-facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; font-size: 0.8125rem; }
+.fmm-details-facts dt { color: rgb(107 114 128); }

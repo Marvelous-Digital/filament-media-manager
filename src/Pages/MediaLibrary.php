@@ -3,16 +3,22 @@
 namespace MarvelousDigital\FilamentMediaManager\Pages;
 
 use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\View;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Url;
 use Livewire\WithFileUploads;
 use MarvelousDigital\FilamentMediaManager\Actions\UploadMedia;
+use MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus;
+use MarvelousDigital\FilamentMediaManager\Jobs\GenerateThumbnail;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFolder;
 
@@ -121,6 +127,86 @@ class MediaLibrary extends Page
                 }
 
                 $folder->delete();
+            });
+    }
+
+    public function editMediaAction(): Action
+    {
+        return Action::make('editMedia')
+            ->label('Details')
+            ->slideOver()
+            ->modalHeading(fn (array $arguments): string => Media::find($arguments['media'])?->name ?? 'Media')
+            ->fillForm(function (array $arguments): array {
+                $media = Media::find($arguments['media']);
+
+                return [
+                    'name' => $media?->name,
+                    'alt_text' => $media?->alt_text,
+                    'folder_id' => $media?->folder_id,
+                ];
+            })
+            ->schema(fn (array $arguments): array => [
+                View::make('filament-media-manager::media-details')
+                    ->viewData(['media' => Media::find($arguments['media'])]),
+                TextInput::make('name')->required()->maxLength(255),
+                Textarea::make('alt_text')->label('Alt text')->rows(3)->maxLength(255),
+                Select::make('folder_id')
+                    ->label('Folder')
+                    ->options(MediaFolder::treeOptions())
+                    ->placeholder('Root')
+                    ->nullable(),
+            ])
+            ->action(function (array $arguments, array $data): void {
+                Media::find($arguments['media'])?->update([
+                    'name' => $data['name'],
+                    'alt_text' => $data['alt_text'],
+                    'folder_id' => $data['folder_id'],
+                ]);
+            });
+    }
+
+    public function deleteMediaAction(): Action
+    {
+        return Action::make('deleteMedia')
+            ->label('Delete')
+            ->icon('heroicon-o-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->action(function (array $arguments): void {
+                Media::find($arguments['media'])?->delete();
+            });
+    }
+
+    public function downloadMediaAction(): Action
+    {
+        return Action::make('downloadMedia')
+            ->label('Download')
+            ->icon('heroicon-o-arrow-down-tray')
+            ->action(function (array $arguments) {
+                $media = Media::find($arguments['media']);
+
+                if (! $media) {
+                    return null;
+                }
+
+                return Storage::disk($media->disk)->download($media->path, $media->file_name);
+            });
+    }
+
+    public function retryThumbnailAction(): Action
+    {
+        return Action::make('retryThumbnail')
+            ->label('Retry thumbnail')
+            ->icon('heroicon-o-arrow-path')
+            ->action(function (array $arguments): void {
+                $media = Media::find($arguments['media']);
+
+                if (! $media) {
+                    return;
+                }
+
+                $media->update(['thumbnail_status' => ThumbnailStatus::Pending]);
+                GenerateThumbnail::dispatchFor($media);
             });
     }
 
