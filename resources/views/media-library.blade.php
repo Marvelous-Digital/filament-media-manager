@@ -1,5 +1,13 @@
 <x-filament-panels::page>
-    <div class="fmm-library">
+    <div
+        class="fmm-library"
+        x-data
+        x-on:dragover.prevent
+        x-on:drop.prevent="
+            const input = document.querySelector('.fmm-upload');
+            if (input) Alpine.$data(input).handleFiles($event.dataTransfer.files);
+        "
+    >
         {{-- Toolbar --}}
         <div class="fmm-toolbar">
             <nav class="fmm-breadcrumbs">
@@ -22,7 +30,32 @@
                     class="fmm-search fi-input"
                 />
                 {{-- @folder-actions --}}
-                {{-- @upload-ui --}}
+                <div
+                    x-data="{
+                        progress: 0,
+                        uploading: false,
+                        handleFiles(files) {
+                            if (! files.length) return;
+                            this.uploading = true;
+                            $wire.uploadMultiple('uploads', files,
+                                () => { this.uploading = false; this.progress = 0; },
+                                () => { this.uploading = false; this.progress = 0; },
+                                (event) => { this.progress = event.detail.progress; },
+                            );
+                        },
+                    }"
+                    x-on:dragover.prevent
+                    x-on:drop.prevent="handleFiles($event.dataTransfer.files)"
+                    class="fmm-upload"
+                >
+                    <input type="file" multiple class="fmm-upload-input" x-ref="input" x-on:change="handleFiles($event.target.files); $event.target.value = null;" />
+                    <x-filament::button icon="heroicon-o-arrow-up-tray" x-on:click="$refs.input.click()" x-show="! uploading">
+                        Upload
+                    </x-filament::button>
+                    <div class="fmm-upload-progress" x-show="uploading" x-cloak>
+                        <div class="fmm-upload-progress-bar" x-bind:style="`width: ${progress}%`"></div>
+                    </div>
+                </div>
             </div>
         </div>
 

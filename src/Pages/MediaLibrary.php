@@ -2,14 +2,21 @@
 
 namespace MarvelousDigital\FilamentMediaManager\Pages;
 
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Database\Eloquent\Builder;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Url;
+use Livewire\WithFileUploads;
+use MarvelousDigital\FilamentMediaManager\Actions\UploadMedia;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFolder;
 
 class MediaLibrary extends Page
 {
+    use WithFileUploads;
+
     protected string $view = 'filament-media-manager::media-library';
 
     #[Url]
@@ -22,6 +29,9 @@ class MediaLibrary extends Page
 
     /** @var array<int> */
     public array $selected = [];
+
+    /** @var array<UploadedFile> */
+    public array $uploads = [];
 
     public static function getNavigationLabel(): string
     {
@@ -54,6 +64,34 @@ class MediaLibrary extends Page
     public function loadMore(): void
     {
         $this->loadedPages++;
+    }
+
+    public function updatedUploads(): void
+    {
+        $folder = $this->currentFolder();
+        $stored = 0;
+
+        foreach ($this->uploads as $file) {
+            try {
+                app(UploadMedia::class)->execute($file, $folder);
+                $stored++;
+            } catch (ValidationException $exception) {
+                Notification::make()
+                    ->title('Upload failed')
+                    ->body(implode(' ', collect($exception->errors())->flatten()->all()))
+                    ->danger()
+                    ->send();
+            }
+        }
+
+        $this->uploads = [];
+
+        if ($stored > 0) {
+            Notification::make()
+                ->title($stored === 1 ? '1 file uploaded' : "{$stored} files uploaded")
+                ->success()
+                ->send();
+        }
     }
 
     public function updatedSearch(): void

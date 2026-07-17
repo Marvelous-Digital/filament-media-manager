@@ -25,3 +25,8 @@
 .fmm-empty { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 3rem 0; color: rgb(107 114 128); }
 .fmm-empty-icon { width: 3rem; height: 3rem; }
 .fmm-load-more { display: flex; justify-content: center; }
+.fmm-upload { display: flex; align-items: center; }
+.fmm-upload-input { display: none; }
+.fmm-upload-progress { width: 8rem; height: 0.5rem; border-radius: 9999px; background: rgb(229 231 235); overflow: hidden; }
+.dark .fmm-upload-progress { background: rgb(55 65 81); }
+.fmm-upload-progress-bar { height: 100%; background: rgb(59 130 246); transition: width 150ms ease; }
