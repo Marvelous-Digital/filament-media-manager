@@ -210,6 +210,39 @@ class MediaLibrary extends Page
             });
     }
 
+    public function bulkDeleteAction(): Action
+    {
+        return Action::make('bulkDelete')
+            ->label('Delete selected')
+            ->icon('heroicon-o-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading('Delete selected media')
+            ->action(function (): void {
+                Media::query()->whereIn('id', $this->selected)->get()->each->delete();
+                $this->selected = [];
+            });
+    }
+
+    public function bulkMoveAction(): Action
+    {
+        return Action::make('bulkMove')
+            ->label('Move selected')
+            ->icon('heroicon-o-folder-arrow-down')
+            ->color('gray')
+            ->schema([
+                Select::make('folder_id')
+                    ->label('Move to')
+                    ->options(MediaFolder::treeOptions())
+                    ->placeholder('Root')
+                    ->nullable(),
+            ])
+            ->action(function (array $data): void {
+                Media::query()->whereIn('id', $this->selected)->update(['folder_id' => $data['folder_id']]);
+                $this->selected = [];
+            });
+    }
+
     public function currentFolder(): ?MediaFolder
     {
         return $this->folderId ? MediaFolder::find($this->folderId) : null;

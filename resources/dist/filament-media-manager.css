@@ -40,3 +40,7 @@
 .fmm-details-preview img { max-height: 20rem; object-fit: contain; }
 .fmm-details-facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; font-size: 0.8125rem; }
 .fmm-details-facts dt { color: rgb(107 114 128); }
+.fmm-bulk-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 0.75rem; background: rgb(243 244 246); font-size: 0.875rem; }
+.dark .fmm-bulk-bar { background: rgb(39 39 42); }
+.fmm-card-check { position: absolute; top: 0.375rem; left: 0.375rem; z-index: 1; }
+.fmm-card:not(:hover) .fmm-card-check:not(:has(:checked)) { display: none; }

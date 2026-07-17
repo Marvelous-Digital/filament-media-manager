@@ -59,7 +59,14 @@
             </div>
         </div>
 
-        {{-- @bulk-actions --}}
+        @if (count($selected) > 0)
+            <div class="fmm-bulk-bar">
+                <span>{{ count($selected) }} selected</span>
+                {{ $this->bulkMoveAction }}
+                {{ $this->bulkDeleteAction }}
+                <x-filament::link tag="button" wire:click="$set('selected', [])">Clear</x-filament::link>
+            </div>
+        @endif
 
         {{-- Grid --}}
         <div class="fmm-grid">
@@ -98,6 +105,9 @@
                         <span class="fmm-card-name" title="{{ $media->file_name }}">{{ $media->name }}</span>
                     </div>
                     <button type="button" class="fmm-card-overlay" wire:click="mountAction('editMedia', { media: {{ $media->id }} })" aria-label="Open details for {{ $media->name }}"></button>
+                    <label class="fmm-card-check" x-on:click.stop>
+                        <input type="checkbox" value="{{ $media->id }}" wire:model.live="selected" class="fi-checkbox-input" />
+                    </label>
                     <div class="fmm-card-menu">
                         <x-filament::icon-button icon="heroicon-o-arrow-down-tray" color="gray" size="sm" label="Download"
                             wire:click="mountAction('downloadMedia', { media: {{ $media->id }} })" />
