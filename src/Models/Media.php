@@ -88,6 +88,11 @@ class Media extends Model
         return $this->thumbnail_path ? $this->resolveUrl($this->thumbnail_path) : null;
     }
 
+    public function resolvePublicUrl(string $path): ?string
+    {
+        return $this->resolveUrl($path);
+    }
+
     protected function resolveUrl(string $path): ?string
     {
         $disk = Storage::disk($this->disk);
