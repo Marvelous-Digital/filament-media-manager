@@ -91,7 +91,16 @@ return [
 
 - **`disk`** — any Laravel filesystem disk. Defaults to `public` via the `FILAMENT_MEDIA_MANAGER_DISK` environment variable.
 - **`directory`** — the root folder on the disk under which all media lives. Each uploaded file keeps its original filename inside a per-item ULID directory: `{directory}/{ulid}/{filename}`. Uploads are never renamed, re-encoded, or otherwise modified.
-- **`accepted_mime_types`** — an array of mime types to restrict uploads to, or `null` to accept any file type.
+- **`accepted_mime_types`** — an array of mime types to restrict uploads to, or `null` to accept any file type. **Security note:** the default `null` accepts any file type, including HTML and SVG. On the default `public` disk, uploaded files are served from the app's own origin, so an uploaded HTML or SVG file can execute script in the context of your app. If the media library is reachable by non-trusted users, configure an explicit allowlist, e.g.:
+  ```php
+  'accepted_mime_types' => [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'video/mp4',
+      'application/pdf',
+  ],
+  ```
 - **`max_file_size`** — maximum upload size per file, in kilobytes.
 - **`thumbnail.width`** — target width in pixels for generated thumbnails (height is scaled proportionally).
 - **`thumbnail.format`** — image format for thumbnails; defaults to `webp`.

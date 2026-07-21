@@ -68,7 +68,7 @@ class MediaFolder extends Model
      *
      * @return array<int, string>
      */
-    public static function treeOptions(?int $excludeSubtree = null): array
+    public static function treeOptions(): array
     {
         $byParent = static::query()
             ->orderBy('name')
@@ -77,12 +77,8 @@ class MediaFolder extends Model
 
         $options = [];
 
-        $walk = function (?int $parentId, int $depth) use (&$walk, &$options, $byParent, $excludeSubtree): void {
+        $walk = function (?int $parentId, int $depth) use (&$walk, &$options, $byParent): void {
             foreach ($byParent->get($parentId ?? '', collect()) as $folder) {
-                if ($folder->id === $excludeSubtree) {
-                    continue;
-                }
-
                 $options[$folder->id] = str_repeat('— ', $depth) . $folder->name;
                 $walk($folder->id, $depth + 1);
             }

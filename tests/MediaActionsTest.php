@@ -40,6 +40,12 @@ it('prefills the edit form', function () {
         ->assertSchemaStateSet(['name' => 'Original', 'alt_text' => 'alt']);
 });
 
+it('does not throw when mounting editMedia for a nonexistent media id', function () {
+    Livewire::test(MediaLibrary::class)
+        ->mountAction('editMedia', arguments: ['media' => 999999])
+        ->assertOk();
+});
+
 it('deletes media and its files', function () {
     Storage::disk('public')->put('media/01DEL/x.jpg', 'bytes');
     $media = Media::factory()->create(['disk' => 'public', 'path' => 'media/01DEL/x.jpg']);
