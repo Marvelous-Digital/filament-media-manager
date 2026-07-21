@@ -16,9 +16,9 @@
 .fmm-card-body { display: flex; flex-direction: column; align-items: stretch; width: 100%; text-align: start; }
 .fmm-folder .fmm-card-body { flex-direction: row; align-items: center; gap: 0.5rem; padding: 0.75rem; cursor: pointer; }
 .fmm-folder-icon { width: 1.5rem; height: 1.5rem; color: rgb(245 158 11); flex: none; }
-.fmm-thumb { aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; background: rgb(243 244 246); }
+.fmm-thumb { position: relative; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; overflow: hidden; background: rgb(243 244 246); }
 .dark .fmm-thumb { background: rgb(39 39 42); }
-.fmm-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.fmm-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .fmm-type-icon { width: 2.5rem; height: 2.5rem; color: rgb(156 163 175); }
 .fmm-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .fmm-card-name { padding: 0.5rem 0.75rem; font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
