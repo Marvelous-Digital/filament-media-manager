@@ -4,6 +4,7 @@ namespace MarvelousDigital\FilamentMediaManager;
 
 use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
+use Livewire\Livewire;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -33,5 +34,10 @@ class MediaManagerServiceProvider extends PackageServiceProvider
         FilamentAsset::register([
             Css::make('filament-media-manager-styles', __DIR__ . '/../resources/dist/filament-media-manager.css'),
         ], 'marvelous-digital/filament-media-manager');
+
+        Livewire::addNamespace(
+            static::$viewNamespace,
+            classNamespace: 'MarvelousDigital\\FilamentMediaManager\\Livewire',
+        );
     }
 }
