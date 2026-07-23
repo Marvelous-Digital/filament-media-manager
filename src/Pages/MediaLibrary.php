@@ -121,7 +121,7 @@ class MediaLibrary extends Page
         return Action::make('editMedia')
             ->label('Details')
             ->slideOver()
-            ->modalHeading(fn (array $arguments): string => Media::find((int) $arguments['media'])?->name ?? 'Media')
+            ->modalHeading(fn (array $arguments): string => Media::query()->whereKey((int) $arguments['media'])->value('name') ?? 'Media')
             ->fillForm(function (array $arguments): array {
                 $media = Media::find((int) $arguments['media']);
 
