@@ -2,6 +2,12 @@
 
 All notable changes to `filament-media-manager` will be documented in this file.
 
+## v0.2.0 - 2026-07-23
+
+- `ImagePicker` form component: lets a resource select a single image from the media library (or upload one and select it) without copying the underlying file, via a `MediaFieldValue` usage record referencing the shared original `Media`.
+- Per-variation focus points: each declared size variation gets its own contributor-set focus point, used to crop that variation's conversion.
+- Generated conversions: one `MediaConversion` per named variation declared via `->variations([...])`, generated asynchronously by a queued job reusing the existing `thumbnail.*` config knobs (queue, queue name, format, quality).
+
 ## v0.1.0 - 2026-07-17
 
 Initial release.

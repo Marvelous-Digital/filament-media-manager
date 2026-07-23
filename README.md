@@ -121,13 +121,57 @@ Open the "Media Library" page from the panel navigation. From there you can:
 
 Thumbnails are generated via Laravel's built-in `Image` facade (introduced in Laravel 13.20) and encoded as WebP by default. Because generation is queued by default, make sure a queue worker is running (`php artisan queue:work`) in production, or set `thumbnail.queue` to `false` if you'd rather generate thumbnails synchronously on upload.
 
+## ImagePicker field
+
+Besides the Media Library page, the package ships a `ImagePicker` form component so any Filament resource can let a user pick a single image from the media library (or upload a new one and select it), without copying the underlying file.
+
+Picking an image creates a `MediaFieldValue` "usage" record that references the shared original `Media` and copies its alt text (overridable per usage), plus one `MediaConversion` per named variation the field declares. Each conversion is cropped around a focus point that the contributor sets in the field's UI, and generated asynchronously by a queued job — the same `thumbnail.*` config knobs (`thumbnail.queue`, `thumbnail.queue_name`, `thumbnail.format`, `thumbnail.quality`) apply, so make sure a queue worker is running in production, or set `thumbnail.queue` to `false` to generate conversions synchronously.
+
+Add a nullable foreign key on the parent model's table, pointing at `media_field_values`:
+
+```php
+$table->foreignId('hero_image_id')->nullable()->constrained('media_field_values')->nullOnDelete();
+```
+
+Define a `belongsTo` relation on the model:
+
+```php
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
+
+public function heroImage(): BelongsTo
+{
+    return $this->belongsTo(MediaFieldValue::class, 'hero_image_id');
+}
+```
+
+Add the field to a form, declaring the named size variations you need (width and height in pixels):
+
+```php
+use MarvelousDigital\FilamentMediaManager\Forms\Components\ImagePicker;
+
+ImagePicker::make('hero_image_id')
+    ->variations([
+        'hero'  => [1600, 600],
+        'card'  => [800, 600],
+        'thumb' => [400, 400],
+    ]);
+```
+
+If `->variations()` is omitted, a single implicit `default` variation of `[1200, 1200]` is used. By default the field stores files on `config('filament-media-manager.disk')`; override per-field with `->disk('public')`.
+
+Consume the picked image wherever you render the parent model:
+
+```php
+$post->heroImage?->conversion('hero')?->url(); // a named conversion
+$post->heroImage?->alt_text;                   // alt text (copied from the source, editable per usage)
+$post->heroImage?->url();                      // the original, unconverted file
+```
+
 ## Roadmap
 
 The following are intentionally out of scope for this first release and may be added later:
 
-- Focus points for smarter cropping of thumbnails and future size variations.
-- Additional responsive size variations / conversions beyond the single configured thumbnail.
-- A picker form component so other resources can select existing media instead of only relying on manual uploads.
 - Video thumbnail generation (video files are currently stored and typed but no thumbnail is generated for them).
 
 ## Testing
