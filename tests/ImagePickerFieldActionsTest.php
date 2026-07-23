@@ -97,3 +97,44 @@ it('re-dispatches generation via the retryConversion field action', function () 
     expect($conversion->refresh()->status)->toBe(ConversionStatus::Pending);
     Queue::assertPushed(GenerateConversion::class);
 });
+
+it('refuses to update focus on a conversion belonging to another field value', function () {
+    Queue::fake();
+    $ownValue = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    $foreignValue = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    $foreignConversion = MediaConversion::factory()->for($foreignValue, 'value')->create([
+        'status' => ConversionStatus::Completed, 'focus_x' => 0.5, 'focus_y' => 0.5,
+    ]);
+
+    Livewire::test(ImagePickerFieldActionsHarness::class)
+        ->set('data.hero_image_id', $ownValue->id)
+        ->callFormComponentAction('hero_image_id', 'updateFocus', arguments: [
+            'conversion' => $foreignConversion->id, 'x' => 0.25, 'y' => 0.75,
+        ])
+        ->assertHasNoFormComponentActionErrors();
+
+    $foreignConversion->refresh();
+    expect($foreignConversion->focus_x)->toBe(0.5)
+        ->and($foreignConversion->focus_y)->toBe(0.5)
+        ->and($foreignConversion->status)->toBe(ConversionStatus::Completed);
+    Queue::assertNotPushed(GenerateConversion::class);
+});
+
+it('refuses to retry a conversion belonging to another field value', function () {
+    Queue::fake();
+    $ownValue = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    $foreignValue = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    $foreignConversion = MediaConversion::factory()->for($foreignValue, 'value')->create([
+        'status' => ConversionStatus::Completed,
+    ]);
+
+    Livewire::test(ImagePickerFieldActionsHarness::class)
+        ->set('data.hero_image_id', $ownValue->id)
+        ->callFormComponentAction('hero_image_id', 'retryConversion', arguments: [
+            'conversion' => $foreignConversion->id,
+        ])
+        ->assertHasNoFormComponentActionErrors();
+
+    expect($foreignConversion->refresh()->status)->toBe(ConversionStatus::Completed);
+    Queue::assertNotPushed(GenerateConversion::class);
+});

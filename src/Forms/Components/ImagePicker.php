@@ -36,7 +36,7 @@ class ImagePicker extends Field
                 ->action(function (array $arguments): void {
                     $conversion = MediaConversion::find((int) ($arguments['conversion'] ?? 0));
 
-                    if ($conversion === null) {
+                    if (! $conversion || $conversion->media_field_value_id !== (int) $this->getState()) {
                         return;
                     }
 
@@ -50,7 +50,7 @@ class ImagePicker extends Field
                 ->action(function (array $arguments): void {
                     $conversion = MediaConversion::find((int) ($arguments['conversion'] ?? 0));
 
-                    if ($conversion === null) {
+                    if (! $conversion || $conversion->media_field_value_id !== (int) $this->getState()) {
                         return;
                     }
 
