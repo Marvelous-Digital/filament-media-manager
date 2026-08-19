@@ -2,8 +2,13 @@
 
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Actions\Testing\TestAction;
+use Filament\Forms\Components\Builder;
+use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Component;
@@ -48,6 +53,50 @@ class ImagePickerFieldActionsHarness extends Component implements HasActions, Ha
     }
 }
 
+/**
+ * Host that nests the ImagePicker inside a Builder block, reproducing the real
+ * page-builder usage where block child components are cloned per item.
+ */
+class BuilderImagePickerHarness extends Component implements HasActions, HasForms
+{
+    use InteractsWithActions;
+    use InteractsWithForms;
+
+    /** @var array<string, mixed> */
+    public array $data = [];
+
+    public function mount(): void
+    {
+        $this->form->fill();
+    }
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Builder::make('blocks')
+                    ->blocks([
+                        Block::make('image')
+                            ->schema([
+                                Tabs::make('tabs')
+                                    ->tabs([
+                                        Tab::make('data')
+                                            ->schema([
+                                                ImagePicker::make('image')->variations(['hero' => [1600, 600]]),
+                                            ]),
+                                    ]),
+                            ]),
+                    ]),
+            ])
+            ->statePath('data');
+    }
+
+    public function render(): string
+    {
+        return '<div></div>';
+    }
+}
+
 it('persists alt text via the updateAlt field action', function () {
     $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create(['alt_text' => null]);
 
@@ -72,6 +121,52 @@ it('updates focus via the updateFocus field action', function () {
             'conversion' => $conversion->id, 'x' => 0.25, 'y' => 0.75,
         ])
         ->assertHasNoFormComponentActionErrors();
+
+    $conversion->refresh();
+    expect($conversion->focus_x)->toBe(0.25)
+        ->and($conversion->focus_y)->toBe(0.75)
+        ->and($conversion->status)->toBe(ConversionStatus::Pending);
+    Queue::assertPushed(GenerateConversion::class);
+});
+
+it('updates focus when the picker is nested inside a builder block', function () {
+    Queue::fake();
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    $conversion = MediaConversion::factory()->for($value, 'value')->create([
+        'status' => ConversionStatus::Completed, 'focus_x' => 0.5, 'focus_y' => 0.5,
+    ]);
+
+    Livewire::test(BuilderImagePickerHarness::class)
+        ->set('data.blocks', [
+            ['type' => 'image', 'data' => ['image' => $value->id]],
+        ])
+        ->callAction(
+            TestAction::make('updateFocus')->schemaComponent('blocks.0.data.image'),
+            arguments: ['conversion' => $conversion->id, 'x' => 0.25, 'y' => 0.75],
+        )
+        ->assertHasNoActionErrors();
+
+    $conversion->refresh();
+    expect($conversion->focus_x)->toBe(0.25)
+        ->and($conversion->focus_y)->toBe(0.75)
+        ->and($conversion->status)->toBe(ConversionStatus::Pending);
+    Queue::assertPushed(GenerateConversion::class);
+});
+
+it('updates focus when the action is mounted the way the blade view does', function () {
+    Queue::fake();
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    $conversion = MediaConversion::factory()->for($value, 'value')->create([
+        'status' => ConversionStatus::Completed, 'focus_x' => 0.5, 'focus_y' => 0.5,
+    ]);
+
+    Livewire::test(ImagePickerFieldActionsHarness::class)
+        ->set('data.hero_image_id', $value->id)
+        ->callAction(
+            TestAction::make('updateFocus')->schemaComponent('hero_image_id'),
+            arguments: ['conversion' => $conversion->id, 'x' => 0.25, 'y' => 0.75],
+        )
+        ->assertHasNoActionErrors();
 
     $conversion->refresh();
     expect($conversion->focus_x)->toBe(0.25)

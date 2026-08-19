@@ -11,14 +11,19 @@
     <div
         class="fmm-image-picker"
         x-data="{
-            open: false,
             init() {
                 window.addEventListener('image-picker:selected', (e) => {
                     if (e.detail?.statePath !== @js($statePath)) return;
-                    $wire.set(@js($statePath), e.detail.valueId);
-                    this.open = false;
+                    this.$wire.set(@js($statePath), e.detail.valueId);
+                    this.$wire.unmountAction();
                 });
-                window.addEventListener('image-picker:close', () => { this.open = false; });
+                window.addEventListener('image-picker:close', () => this.$wire.unmountAction());
+            },
+            open() {
+                this.$wire.mountAction('select', {
+                    statePath: @js($statePath),
+                    variations: @js($getVariations()),
+                }, { schemaComponent: @js($key) });
             },
         }"
         wire:key="fmm-picker-{{ $statePath }}"
@@ -27,7 +32,7 @@
             <div class="fmm-picker-preview">
                 <img src="{{ $value->url() }}" alt="{{ $value->alt_text }}" />
                 <div class="fmm-picker-actions">
-                    <x-filament::button size="sm" color="gray" icon="heroicon-o-arrow-path" x-on:click="open = true">
+                    <x-filament::button size="sm" color="gray" icon="heroicon-o-arrow-path" x-on:click="open()">
                         {{ __('Change') }}
                     </x-filament::button>
                     <x-filament::button size="sm" color="danger" icon="heroicon-o-trash" x-on:click="$wire.set(@js($statePath), null)">
@@ -125,27 +130,11 @@
                 </div>
             @endif
         @else
-            <x-filament::button icon="heroicon-o-photo" color="gray" x-on:click="open = true">
+            <x-filament::button icon="heroicon-o-photo" color="gray" x-on:click="open()">
                 {{ __('Pick image') }}
             </x-filament::button>
         @endif
 
         <input type="hidden" {{ $applyStateBindingModifiers('wire:model') }}="{{ $statePath }}" />
-
-        <template x-teleport="body">
-            <x-filament::modal :id="'fmm-image-picker-' . $statePath" width="5xl" x-model="open">
-                <x-slot name="heading">{{ __('Select an image') }}</x-slot>
-
-                <template x-if="open">
-                    <div>
-                        @livewire(
-                            'filament-media-manager::media-picker-browser',
-                            ['variations' => $getVariations(), 'statePath' => $statePath],
-                            key($statePath . '-browser')
-                        )
-                    </div>
-                </template>
-            </x-filament::modal>
-        </template>
     </div>
 </x-dynamic-component>

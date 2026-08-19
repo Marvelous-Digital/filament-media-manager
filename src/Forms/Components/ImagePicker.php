@@ -4,6 +4,9 @@ namespace MarvelousDigital\FilamentMediaManager\Forms\Components;
 
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
+use Filament\Schemas\Components\Component;
+use Filament\Support\Enums\Width;
+use Illuminate\Contracts\View\View;
 use MarvelousDigital\FilamentMediaManager\Actions\UpdateConversionFocus;
 use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateConversion;
@@ -26,17 +29,26 @@ class ImagePicker extends Field
         $this->dehydrated(true);
 
         $this->registerActions([
+            fn (): Action => Action::make('select')
+                ->modalHeading(__('Select an image'))
+                ->modalWidth(Width::FiveExtraLarge)
+                ->modalContent(fn (array $arguments): View => view('filament-media-manager::forms.components.image-picker-modal', [
+                    'variations' => $arguments['variations'] ?? [],
+                    'statePath' => $arguments['statePath'] ?? '',
+                ]))
+                ->modalSubmitAction(false)
+                ->modalCancelAction(false),
             fn (): Action => Action::make('updateAlt')
-                ->action(function (array $arguments): void {
-                    $value = MediaFieldValue::find($this->getState());
+                ->action(function (array $arguments, Component $component): void {
+                    $value = MediaFieldValue::find($component->getState());
 
                     $value?->update(['alt_text' => $arguments['alt'] ?? null]);
                 }),
             fn (): Action => Action::make('updateFocus')
-                ->action(function (array $arguments): void {
+                ->action(function (array $arguments, Component $component): void {
                     $conversion = MediaConversion::find((int) ($arguments['conversion'] ?? 0));
 
-                    if (! $conversion || $conversion->media_field_value_id !== (int) $this->getState()) {
+                    if (! $conversion || $conversion->media_field_value_id !== (int) $component->getState()) {
                         return;
                     }
 
@@ -47,10 +59,10 @@ class ImagePicker extends Field
                     );
                 }),
             fn (): Action => Action::make('retryConversion')
-                ->action(function (array $arguments): void {
+                ->action(function (array $arguments, Component $component): void {
                     $conversion = MediaConversion::find((int) ($arguments['conversion'] ?? 0));
 
-                    if (! $conversion || $conversion->media_field_value_id !== (int) $this->getState()) {
+                    if (! $conversion || $conversion->media_field_value_id !== (int) $component->getState()) {
                         return;
                     }
 

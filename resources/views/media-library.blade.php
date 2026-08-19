@@ -34,12 +34,22 @@
                     x-data="{
                         progress: 0,
                         uploading: false,
+                        maxBytes: {{ (int) config('filament-media-manager.max_file_size') }} * 1024,
                         handleFiles(files) {
+                            files = Array.from(files);
+                            const tooBig = files.filter((file) => file.size > this.maxBytes);
+                            files = files.filter((file) => file.size <= this.maxBytes);
+
+                            if (tooBig.length) {
+                                $wire.call('reportOversizedUploads', tooBig.map((file) => file.name));
+                            }
+
                             if (! files.length) return;
+
                             this.uploading = true;
                             $wire.uploadMultiple('uploads', files,
                                 () => { this.uploading = false; this.progress = 0; },
-                                () => { this.uploading = false; this.progress = 0; },
+                                () => { this.uploading = false; this.progress = 0; $wire.call('reportUploadFailed'); },
                                 (event) => { this.progress = event.detail.progress; },
                             );
                         },

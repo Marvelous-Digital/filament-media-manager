@@ -86,6 +86,32 @@ trait BrowsesMedia
         }
     }
 
+    /**
+     * @param  array<int, string>  $fileNames
+     */
+    public function reportOversizedUploads(array $fileNames): void
+    {
+        $maxKilobytes = (int) config('filament-media-manager.max_file_size');
+        $limit = $maxKilobytes >= 1024
+            ? round($maxKilobytes / 1024, 1).' MB'
+            : $maxKilobytes.' KB';
+
+        Notification::make()
+            ->title(count($fileNames) === 1 ? 'File too large' : 'Files too large')
+            ->body(implode(', ', $fileNames)." — maximum upload size is {$limit}.")
+            ->danger()
+            ->send();
+    }
+
+    public function reportUploadFailed(): void
+    {
+        Notification::make()
+            ->title('Upload failed')
+            ->body('The file could not be uploaded. Please try again.')
+            ->danger()
+            ->send();
+    }
+
     protected function mediaQuery(): Builder
     {
         $query = Media::query();
