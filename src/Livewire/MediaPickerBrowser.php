@@ -5,7 +5,6 @@ namespace MarvelousDigital\FilamentMediaManager\Livewire;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use MarvelousDigital\FilamentMediaManager\Actions\PickMedia;
 use MarvelousDigital\FilamentMediaManager\Concerns\BrowsesMedia;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 
@@ -14,10 +13,9 @@ class MediaPickerBrowser extends Component
     use BrowsesMedia;
     use WithFileUploads;
 
-    /** @var array<string, array{0: int, 1: int}> */
-    public array $variations = [];
-
     public string $statePath = '';
+
+    public string $target = 'main';
 
     protected function imagesOnly(): bool
     {
@@ -26,15 +24,11 @@ class MediaPickerBrowser extends Component
 
     public function select(int $mediaId): void
     {
-        $media = Media::find($mediaId);
-
-        if (! $media) {
+        if (! Media::query()->whereKey($mediaId)->exists()) {
             return;
         }
 
-        $value = app(PickMedia::class)->execute($media, $this->variations);
-
-        $this->dispatch('image-picker:selected', statePath: $this->statePath, valueId: $value->id);
+        $this->dispatch('image-picker:selected', statePath: $this->statePath, target: $this->target, mediaId: $mediaId);
         $this->dispatch('image-picker:close');
     }
 

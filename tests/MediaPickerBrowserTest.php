@@ -10,20 +10,18 @@ it('lists only images', function () {
     Media::factory()->create(['name' => 'pic', 'type' => MediaType::Image]);
     Media::factory()->create(['name' => 'clip', 'type' => MediaType::Video, 'mime_type' => 'video/mp4']);
 
-    Livewire::test(MediaPickerBrowser::class, ['variations' => ['hero' => [1600, 600]], 'statePath' => 'data.hero_image_id'])
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.hero_image_id', 'target' => 'main'])
         ->assertSee('pic')
         ->assertDontSee('clip');
 });
 
-it('creates a usage record and dispatches selection on select', function () {
-    $media = Media::factory()->create(['type' => MediaType::Image, 'alt_text' => 'Cat']);
+it('dispatches the selection with its target and persists nothing', function () {
+    $media = Media::factory()->create(['type' => MediaType::Image]);
 
-    Livewire::test(MediaPickerBrowser::class, ['variations' => ['hero' => [1600, 600]], 'statePath' => 'data.hero_image_id'])
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.hero', 'target' => 'mobile'])
         ->call('select', $media->id)
-        ->assertDispatched('image-picker:selected');
+        ->assertDispatched('image-picker:selected', statePath: 'data.hero', target: 'mobile', mediaId: $media->id)
+        ->assertDispatched('image-picker:close');
 
-    $value = MediaFieldValue::query()->latest('id')->first();
-    expect($value->media_id)->toBe($media->id)
-        ->and($value->alt_text)->toBe('Cat')
-        ->and($value->conversion('hero'))->not->toBeNull();
+    expect(MediaFieldValue::query()->count())->toBe(0);
 });

@@ -1,7 +1,7 @@
 <div>
     @livewire(
         'filament-media-manager::media-picker-browser',
-        ['variations' => $variations, 'statePath' => $statePath],
-        key($statePath . '-browser')
+        ['statePath' => $statePath, 'target' => $target],
+        key($statePath . '-' . $target . '-browser')
     )
 </div>

@@ -125,7 +125,7 @@ Thumbnails are generated via Laravel's built-in `Image` facade (introduced in La
 
 Besides the Media Library page, the package ships a `ImagePicker` form component so any Filament resource can let a user pick a single image from the media library (or upload a new one and select it), without copying the underlying file.
 
-Picking an image creates a `MediaFieldValue` "usage" record that references the shared original `Media` and copies its alt text (overridable per usage), plus one `MediaConversion` per named variation the field declares. Each conversion is cropped around a focus point that the contributor sets in the field's UI, and generated asynchronously by a queued job — the same `thumbnail.*` config knobs (`thumbnail.queue`, `thumbnail.queue_name`, `thumbnail.format`, `thumbnail.quality`) apply, so make sure a queue worker is running in production, or set `thumbnail.queue` to `false` to generate conversions synchronously.
+The field shows the formats it needs (as ratios) before anything is picked. Admins upload a new image or pick one from the library, reframe each variation with a focus point and zoom, and can give any variation its own image (with its own focus, zoom and alt text). **Nothing is written until the form is saved**; cancelling discards all image edits. On save the field stores a `MediaFieldValue` id, updating the existing record in place, and regenerates only the variations whose framing changed. The previous crop keeps being served until its replacement is ready. Generation uses the `thumbnail.*` config knobs (`thumbnail.queue`, `thumbnail.queue_name`, `thumbnail.format`, `thumbnail.quality`), so run a queue worker in production or set `thumbnail.queue` to `false`.
 
 Add a nullable foreign key on the parent model's table, pointing at `media_field_values`:
 
@@ -163,9 +163,10 @@ If `->variations()` is omitted, a single implicit `default` variation of `[1200,
 Consume the picked image wherever you render the parent model:
 
 ```php
-$post->heroImage?->conversion('hero')?->url(); // a named conversion
-$post->heroImage?->alt_text;                   // alt text (copied from the source, editable per usage)
-$post->heroImage?->url();                      // the original, unconverted file
+$post->heroImage?->conversion('hero')?->url();               // a named conversion
+$post->heroImage?->conversion('hero')?->effectiveAltText();  // variation alt (own image) or main alt
+$post->heroImage?->alt_text;                                  // main alt text
+$post->heroImage?->url();                                     // the original, unconverted main image
 ```
 
 ## Roadmap
