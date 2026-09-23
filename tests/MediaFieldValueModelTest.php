@@ -38,3 +38,10 @@ it('cleans up conversion files on delete but leaves the original', function () {
     Storage::disk('public')->assertMissing($value->directory() . '/hero.webp');
     Storage::disk('public')->assertExists('media/01A/photo.jpg');
 });
+
+it('keeps conversions in a directory independent of the main image', function () {
+    config()->set('filament-media-manager.directory', 'media');
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+
+    expect($value->directory())->toBe("media/conversions/{$value->id}");
+});

@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
 use MarvelousDigital\FilamentMediaManager\Support\CropBox;
+use Throwable;
 
 /**
  * @property int $id
@@ -20,9 +22,12 @@ use MarvelousDigital\FilamentMediaManager\Support\CropBox;
  * @property float $zoom
  * @property string|null $path
  * @property ConversionStatus $status
+ * @property int|null $media_id
+ * @property string|null $alt_text
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read MediaFieldValue $value
+ * @property-read Media|null $source
  */
 class MediaConversion extends Model
 {
@@ -30,7 +35,7 @@ class MediaConversion extends Model
 
     protected $fillable = [
         'media_field_value_id', 'variation', 'width', 'height',
-        'focus_x', 'focus_y', 'zoom', 'path', 'status',
+        'focus_x', 'focus_y', 'zoom', 'path', 'status', 'media_id', 'alt_text',
     ];
 
     protected function casts(): array
@@ -42,12 +47,62 @@ class MediaConversion extends Model
             'focus_x' => 'float',
             'focus_y' => 'float',
             'zoom' => 'float',
+            'media_id' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleted(function (self $conversion): void {
+            if ($conversion->path === null) {
+                return;
+            }
+
+            try {
+                Storage::disk($conversion->value->source->disk)->delete($conversion->path);
+            } catch (Throwable) {
+                // Best-effort cleanup; never block row deletion.
+            }
+        });
     }
 
     public function value(): BelongsTo
     {
         return $this->belongsTo(MediaFieldValue::class, 'media_field_value_id');
+    }
+
+    public function source(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'media_id');
+    }
+
+    public function effectiveSource(): Media
+    {
+        return $this->source ?? $this->value->source;
+    }
+
+    public function effectiveAltText(): ?string
+    {
+        if ($this->media_id !== null && filled($this->alt_text)) {
+            return $this->alt_text;
+        }
+
+        return $this->value->alt_text;
+    }
+
+    /**
+     * Short hash of everything that shapes the generated file; used to version file names.
+     */
+    public function fingerprint(): string
+    {
+        return substr(sha1(implode('|', [
+            $this->effectiveSource()->id,
+            $this->width,
+            $this->height,
+            $this->focus_x,
+            $this->focus_y,
+            $this->zoom,
+        ])), 0, 8);
     }
 
     /**
@@ -56,8 +111,9 @@ class MediaConversion extends Model
      */
     public function maxSafeZoom(): ?float
     {
-        $sourceW = $this->value->source->width;
-        $sourceH = $this->value->source->height;
+        $source = $this->effectiveSource();
+        $sourceW = $source->width;
+        $sourceH = $source->height;
 
         if (! $sourceW || ! $sourceH) {
             return null;

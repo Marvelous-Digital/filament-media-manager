@@ -60,6 +60,6 @@ class MediaFieldValue extends Model
 
     public function directory(): string
     {
-        return dirname($this->source->path) . '/conversions/' . $this->id;
+        return trim(config('filament-media-manager.directory'), '/') . '/conversions/' . $this->id;
     }
 }

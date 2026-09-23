@@ -27,6 +27,8 @@ return new class extends Migration
             $table->float('zoom')->default(1.0);
             $table->string('path')->nullable();
             $table->string('status')->default('pending');
+            $table->foreignId('media_id')->nullable()->constrained('media')->nullOnDelete();
+            $table->string('alt_text')->nullable();
             $table->timestamps();
 
             $table->unique(['media_field_value_id', 'variation']);
