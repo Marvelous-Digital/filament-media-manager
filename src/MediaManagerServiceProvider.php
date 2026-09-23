@@ -34,7 +34,7 @@ class MediaManagerServiceProvider extends PackageServiceProvider
         $this->alignTemporaryUploadLimit();
 
         FilamentAsset::register([
-            Css::make('filament-media-manager-styles', __DIR__.'/../resources/dist/filament-media-manager.css'),
+            Css::make('filament-media-manager-styles', __DIR__ . '/../resources/dist/filament-media-manager.css'),
         ], 'marvelous-digital/filament-media-manager');
 
         Livewire::addNamespace(

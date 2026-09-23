@@ -93,12 +93,12 @@ trait BrowsesMedia
     {
         $maxKilobytes = (int) config('filament-media-manager.max_file_size');
         $limit = $maxKilobytes >= 1024
-            ? round($maxKilobytes / 1024, 1).' MB'
-            : $maxKilobytes.' KB';
+            ? round($maxKilobytes / 1024, 1) . ' MB'
+            : $maxKilobytes . ' KB';
 
         Notification::make()
             ->title(count($fileNames) === 1 ? 'File too large' : 'Files too large')
-            ->body(implode(', ', $fileNames)." — maximum upload size is {$limit}.")
+            ->body(implode(', ', $fileNames) . " — maximum upload size is {$limit}.")
             ->danger()
             ->send();
     }
