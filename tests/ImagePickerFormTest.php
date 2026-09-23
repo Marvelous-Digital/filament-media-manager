@@ -38,6 +38,8 @@ class ImagePickerFormHarness extends Component implements HasActions, HasForms
 
     public bool $withRequiredTitle = false;
 
+    public bool $requireHero = false;
+
     public function mount(): void
     {
         $this->form->fill(['hero' => $this->preset]);
@@ -48,7 +50,7 @@ class ImagePickerFormHarness extends Component implements HasActions, HasForms
         return $schema
             ->components([
                 TextInput::make('title')->required($this->withRequiredTitle),
-                ImagePicker::make('hero')->variations(['desktop' => [1500, 900], 'mobile' => [480, 640]]),
+                ImagePicker::make('hero')->variations(['desktop' => [1500, 900], 'mobile' => [480, 640]])->required($this->requireHero),
             ])
             ->statePath('data');
     }
@@ -240,6 +242,27 @@ it('removes a saved image on save', function () {
     $livewire->call('save')->assertSet('saved.hero', null);
 
     expect(MediaFieldValue::query()->count())->toBe(0);
+});
+
+it('fails validation on a required field with no image and persists nothing', function () {
+    $livewire = Livewire::test(ImagePickerFormHarness::class, ['requireHero' => true]);
+
+    $livewire->call('save')->assertHasErrors(['data.hero']);
+
+    expect(MediaFieldValue::query()->count())->toBe(0);
+    Queue::assertNothingPushed();
+});
+
+it('fails validation on a required field whose saved image was removed', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+
+    $livewire = Livewire::test(ImagePickerFormHarness::class, ['preset' => $value->id, 'requireHero' => true]);
+    callPicker($livewire, 'removeImage');
+
+    $livewire->call('save')->assertHasErrors(['data.hero']);
+
+    expect(MediaFieldValue::query()->count())->toBe(1);
+    expect(MediaFieldValue::query()->find($value->id))->not->toBeNull();
 });
 
 it('persists when nested inside a builder block', function () {
