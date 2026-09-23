@@ -11,6 +11,7 @@ use MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateThumbnail;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFolder;
+use Throwable;
 
 class UploadMedia
 {
@@ -26,6 +27,8 @@ class UploadMedia
 
         $path = $file->storeAs($directory, $fileName, ['disk' => $disk]);
 
+        [$width, $height] = $this->dimensions($file, $type);
+
         $needsThumbnail = $type === MediaType::Image && $mimeType !== 'image/svg+xml';
 
         $media = Media::create([
@@ -37,6 +40,8 @@ class UploadMedia
             'mime_type' => $mimeType,
             'type' => $type,
             'size' => $file->getSize(),
+            'width' => $width,
+            'height' => $height,
             'thumbnail_status' => $needsThumbnail ? ThumbnailStatus::Pending : ThumbnailStatus::Skipped,
             'created_by' => Auth::id(),
         ]);
@@ -73,5 +78,52 @@ class UploadMedia
         $fileName = str_replace(['..', '#', '?'], '', $fileName);
 
         return $fileName === '' ? 'file' : $fileName;
+    }
+
+    /**
+     * @return array{0: int|null, 1: int|null}
+     */
+    protected function dimensions(UploadedFile $file, MediaType $type): array
+    {
+        if ($type !== MediaType::Image) {
+            return [null, null];
+        }
+
+        try {
+            $size = getimagesize($file->getRealPath());
+        } catch (Throwable) {
+            return [null, null];
+        }
+
+        if ($size === false) {
+            return [null, null];
+        }
+
+        [$width, $height] = $size;
+
+        if ($this->isRotatedQuarterTurn($file)) {
+            return [$height, $width];
+        }
+
+        return [$width, $height];
+    }
+
+    /**
+     * EXIF orientations 5–8 are displayed rotated by 90°; conversions apply orient(), so
+     * report the displayed dimensions.
+     */
+    protected function isRotatedQuarterTurn(UploadedFile $file): bool
+    {
+        if (! function_exists('exif_read_data')) {
+            return false;
+        }
+
+        try {
+            $exif = exif_read_data($file->getRealPath());
+        } catch (Throwable) {
+            return false;
+        }
+
+        return is_array($exif) && in_array((int) ($exif['Orientation'] ?? 1), [5, 6, 7, 8], true);
     }
 }

@@ -72,3 +72,15 @@ it('sanitizes path-hostile filenames', function () {
     expect($media->file_name)->not->toContain('/')
         ->and($media->file_name)->not->toContain('..');
 });
+
+it('stores image dimensions at upload time', function () {
+    $media = app(UploadMedia::class)->execute(UploadedFile::fake()->image('wide.jpg', 1200, 500));
+
+    expect($media->width)->toBe(1200)->and($media->height)->toBe(500);
+});
+
+it('leaves dimensions empty for non-images', function () {
+    $media = app(UploadMedia::class)->execute(UploadedFile::fake()->create('report.pdf', 100, 'application/pdf'));
+
+    expect($media->width)->toBeNull()->and($media->height)->toBeNull();
+});

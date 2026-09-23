@@ -109,4 +109,28 @@ class Media extends Model
             return null;
         }
     }
+
+    /**
+     * Measure and store width/height when they are unknown (e.g. uploads that predate
+     * upload-time measuring). Silently does nothing for unreadable or non-image files.
+     */
+    public function ensureDimensions(): void
+    {
+        if (($this->width && $this->height) || $this->type !== MediaType::Image) {
+            return;
+        }
+
+        try {
+            $contents = Storage::disk($this->disk)->get($this->path);
+            $size = is_string($contents) && $contents !== '' ? getimagesizefromstring($contents) : false;
+        } catch (Throwable) {
+            return;
+        }
+
+        if ($size === false) {
+            return;
+        }
+
+        $this->update(['width' => $size[0], 'height' => $size[1]]);
+    }
 }
