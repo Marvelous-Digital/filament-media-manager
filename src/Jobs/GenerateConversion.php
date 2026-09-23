@@ -7,7 +7,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Image;
+use Illuminate\Support\Facades\Storage;
 use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
 use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
 use MarvelousDigital\FilamentMediaManager\Support\CropBox;
@@ -21,20 +23,37 @@ class GenerateConversion implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    public bool $deleteWhenMissingModels = true;
+
     public function __construct(public MediaConversion $conversion) {}
 
+    /**
+     * Dispatch after the surrounding transaction commits so a rolled-back form save never
+     * generates files. Outside a transaction this runs immediately.
+     */
     public static function dispatchFor(MediaConversion $conversion): void
     {
         if (config('filament-media-manager.thumbnail.queue')) {
-            static::dispatch($conversion)->onQueue(config('filament-media-manager.thumbnail.queue_name'));
-        } else {
-            static::dispatchSync($conversion);
+            static::dispatch($conversion)
+                ->onQueue(config('filament-media-manager.thumbnail.queue_name'))
+                ->afterCommit();
+
+            return;
         }
+
+        DB::afterCommit(fn () => static::dispatchSync($conversion));
     }
 
     public function handle(): void
     {
-        $source = $this->conversion->value->source;
+        $conversion = $this->conversion->fresh(['value.source', 'source']);
+
+        if ($conversion === null) {
+            return;
+        }
+
+        $source = $conversion->effectiveSource();
+        $disk = $conversion->value->source->disk;
 
         try {
             $image = Image::fromStorage($source->path, $source->disk)->orient();
@@ -43,32 +62,38 @@ class GenerateConversion implements ShouldQueue
             $box = CropBox::for(
                 $sw,
                 $sh,
-                $this->conversion->width,
-                $this->conversion->height,
-                $this->conversion->focus_x,
-                $this->conversion->focus_y,
-                $this->conversion->zoom,
+                $conversion->width,
+                $conversion->height,
+                $conversion->focus_x,
+                $conversion->focus_y,
+                $conversion->zoom,
             );
 
             $format = config('filament-media-manager.thumbnail.format', 'webp');
 
             $path = $image
                 ->crop($box['width'], $box['height'], $box['x'], $box['y'])
-                ->resize($this->conversion->width, $this->conversion->height)
+                ->resize($conversion->width, $conversion->height)
                 ->optimize(format: $format, quality: config('filament-media-manager.thumbnail.quality', 70))
                 ->storeAs(
-                    path: $this->conversion->value->directory(),
-                    name: $this->conversion->variation . '.' . $format,
-                    disk: $source->disk,
+                    path: $conversion->value->directory(),
+                    name: $conversion->variation . '-' . $conversion->fingerprint() . '.' . $format,
+                    disk: $disk,
                 );
 
             if ($path === false) {
-                throw new RuntimeException("Could not store conversion [{$this->conversion->id}].");
+                throw new RuntimeException("Could not store conversion [{$conversion->id}].");
             }
 
-            $this->conversion->update(['path' => $path, 'status' => ConversionStatus::Completed]);
+            $previousPath = $conversion->path;
+
+            $conversion->update(['path' => $path, 'status' => ConversionStatus::Completed]);
+
+            if ($previousPath !== null && $previousPath !== $path) {
+                Storage::disk($disk)->delete($previousPath);
+            }
         } catch (Throwable $exception) {
-            $this->conversion->update(['status' => ConversionStatus::Failed]);
+            $conversion->update(['status' => ConversionStatus::Failed]);
             report($exception);
         }
     }
