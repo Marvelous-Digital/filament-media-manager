@@ -54,18 +54,11 @@
 .fmm-picker-alt { display: flex; flex-direction: column; gap: 0.25rem; }
 .fmm-picker-alt label { font-size: 0.8125rem; font-weight: 500; color: rgb(107 114 128); }
 .fmm-alt-input { width: 100%; }
-.fmm-focus-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 1rem; }
-.fmm-focus-editor { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgb(229 231 235); }
-.dark .fmm-focus-editor { border-color: rgb(63 63 70); }
-.fmm-focus-label { font-size: 0.8125rem; font-weight: 500; }
 .fmm-focus-image { position: relative; overflow: hidden; border-radius: 0.5rem; cursor: crosshair; touch-action: none; background: rgb(243 244 246); }
 .dark .fmm-focus-image { background: rgb(39 39 42); }
 .fmm-focus-image img { display: block; width: 100%; height: auto; -webkit-user-select: none; user-select: none; pointer-events: none; }
 .fmm-focus-crop-rect { position: absolute; box-sizing: border-box; border: 2px solid rgba(59, 130, 246, 0.9); box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35); pointer-events: none; }
 .fmm-focus-marker { position: absolute; width: 1.25rem; height: 1.25rem; transform: translate(-50%, -50%); border-radius: 9999px; border: 2px solid #fff; box-shadow: 0 0 0 2px rgb(59 130 246), 0 1px 3px rgba(0, 0, 0, 0.4); background: rgba(59, 130, 246, 0.35); pointer-events: none; }
-.fmm-focus-preview { position: relative; width: 100%; overflow: hidden; border-radius: 0.5rem; background: rgb(243 244 246); }
-.dark .fmm-focus-preview { background: rgb(39 39 42); }
-.fmm-focus-preview img { width: 100%; height: 100%; object-fit: cover; }
 .fmm-zoom { display: flex; flex-direction: column; gap: 0.25rem; }
 .fmm-zoom-label { display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; font-weight: 500; color: rgb(107 114 128); }
 .fmm-zoom-value { font-variant-numeric: tabular-nums; }
@@ -73,4 +66,32 @@
 .fmm-zoom-warning { font-size: 0.75rem; color: rgb(217 119 6); }
 .dark .fmm-zoom-warning { color: rgb(251 191 36); }
 [x-cloak] { display: none !important; }
-.fmm-focus-pending { font-size: 0.75rem; color: rgb(107 114 128); }
+
+.fmm-image-picker { display: flex; flex-direction: column; gap: 0.75rem; }
+.fmm-picker-empty { display: flex; flex-direction: column; gap: 0.75rem; }
+.fmm-picker-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.fmm-picker-uploading { font-size: 0.75rem; color: rgb(107 114 128); }
+.fmm-formats-label { font-size: 0.8125rem; font-weight: 500; color: rgb(107 114 128); }
+.fmm-formats { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; }
+.fmm-format { display: flex; flex-direction: column; gap: 0.25rem; width: 7rem; }
+.fmm-format-box { display: block; width: 100%; max-height: 7rem; border: 2px dashed rgb(209 213 219); border-radius: 0.375rem; background: rgb(249 250 251); }
+.dark .fmm-format-box { border-color: rgb(82 82 91); background: rgb(39 39 42); }
+.fmm-format-name { font-size: 0.8125rem; font-weight: 500; }
+.fmm-format-size { font-size: 0.6875rem; color: rgb(107 114 128); font-variant-numeric: tabular-nums; }
+.fmm-unsaved { font-size: 0.75rem; color: rgb(217 119 6); }
+.dark .fmm-unsaved { color: rgb(251 191 36); }
+.fmm-variants { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 1rem; align-items: start; }
+.fmm-variant { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgb(229 231 235); }
+.dark .fmm-variant { border-color: rgb(63 63 70); }
+.fmm-variant-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.fmm-variant-name { font-size: 0.8125rem; font-weight: 500; }
+.fmm-variant-badge { font-size: 0.6875rem; font-weight: 500; padding: 0.125rem 0.5rem; border-radius: 9999px; background: rgb(219 234 254); color: rgb(29 78 216); }
+.dark .fmm-variant-badge { background: rgba(59, 130, 246, 0.2); color: rgb(147 197 253); }
+.fmm-variant-thumb { position: relative; width: 100%; overflow: hidden; border-radius: 0.5rem; background: rgb(243 244 246); }
+.dark .fmm-variant-thumb { background: rgb(39 39 42); }
+.fmm-variant-status { min-height: 1.25rem; font-size: 0.75rem; }
+.fmm-variant-pending { color: rgb(107 114 128); }
+.fmm-variant-ready { color: rgb(22 163 74); }
+.dark .fmm-variant-ready { color: rgb(74 222 128); }
+.fmm-variant-actions { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+.fmm-reframe { display: flex; flex-direction: column; gap: 0.5rem; }
