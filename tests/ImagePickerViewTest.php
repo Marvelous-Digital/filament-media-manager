@@ -49,5 +49,26 @@ it('renders the filled state blade with focus editor without error', function ()
     Livewire::test(RenderHarness::class, ['preset' => $value->id])
         ->assertOk()
         ->assertSee('Alt text')
+        ->assertSee('Zoom')
         ->assertSee('Retry');
+});
+
+it('polls while a conversion is still generating', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    MediaConversion::factory()->for($value, 'value')->create(['status' => ConversionStatus::Pending]);
+
+    Livewire::test(RenderHarness::class, ['preset' => $value->id])
+        ->assertOk()
+        ->assertSee('Generating')
+        ->assertSee('wire:poll', escape: false);
+});
+
+it('stops polling once every conversion is completed', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    MediaConversion::factory()->for($value, 'value')->create(['status' => ConversionStatus::Completed]);
+
+    Livewire::test(RenderHarness::class, ['preset' => $value->id])
+        ->assertOk()
+        ->assertDontSee('Generating')
+        ->assertDontSee('wire:poll', escape: false);
 });

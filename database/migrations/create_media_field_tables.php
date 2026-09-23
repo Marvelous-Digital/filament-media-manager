@@ -24,6 +24,7 @@ return new class extends Migration
             $table->unsignedInteger('height');
             $table->float('focus_x')->default(0.5);
             $table->float('focus_y')->default(0.5);
+            $table->float('zoom')->default(1.0);
             $table->string('path')->nullable();
             $table->string('status')->default('pending');
             $table->timestamps();

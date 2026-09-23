@@ -47,6 +47,7 @@ class GenerateConversion implements ShouldQueue
                 $this->conversion->height,
                 $this->conversion->focus_x,
                 $this->conversion->focus_y,
+                $this->conversion->zoom,
             );
 
             $format = config('filament-media-manager.thumbnail.format', 'webp');

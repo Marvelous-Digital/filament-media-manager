@@ -18,6 +18,7 @@ class MediaConversionFactory extends Factory
             'height' => 600,
             'focus_x' => 0.5,
             'focus_y' => 0.5,
+            'zoom' => 1.0,
             'path' => null,
             'status' => ConversionStatus::Pending,
         ];

@@ -5,6 +5,7 @@
     $statePath = $getStatePath();
     $key = $getKey();
     $value = ($id = $getState()) ? MediaFieldValue::with('conversions')->find($id) : null;
+    $isGenerating = $value?->conversions->contains(fn ($conversion): bool => $conversion->status === ConversionStatus::Pending) ?? false;
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">
@@ -27,6 +28,7 @@
             },
         }"
         wire:key="fmm-picker-{{ $statePath }}"
+        @if ($isGenerating) wire:poll.3s @endif
     >
         @if ($value)
             <div class="fmm-picker-preview">
@@ -62,7 +64,46 @@
                             x-data="{
                                 fx: {{ $conversion->focus_x }},
                                 fy: {{ $conversion->focus_y }},
+                                zoom: {{ $conversion->zoom }},
+                                maxSafeZoom: @js($conversion->maxSafeZoom()),
+                                sourceW: {{ (int) ($value->source->width ?? 0) }},
+                                sourceH: {{ (int) ($value->source->height ?? 0) }},
+                                targetW: {{ $conversion->width }},
+                                targetH: {{ $conversion->height }},
                                 dragging: false,
+                                get overZoomed() {
+                                    return this.maxSafeZoom !== null && this.zoom > this.maxSafeZoom + 0.001;
+                                },
+                                cropBox() {
+                                    const sw = this.sourceW, sh = this.sourceH;
+                                    const ta = this.targetW / this.targetH, sa = sw / sh;
+                                    let cw, ch;
+                                    if (sa > ta) { ch = sh; cw = Math.round(sh * ta); }
+                                    else { cw = sw; ch = Math.round(sw / ta); }
+                                    const z = Math.max(1, this.zoom);
+                                    cw = Math.round(cw / z);
+                                    ch = Math.round(ch / z);
+                                    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+                                    const x = clamp(Math.round(this.fx * sw - cw / 2), 0, sw - cw);
+                                    const y = clamp(Math.round(this.fy * sh - ch / 2), 0, sh - ch);
+                                    return { x, y, width: cw, height: ch };
+                                },
+                                previewStyle() {
+                                    if (! this.sourceW || ! this.sourceH) {
+                                        return `object-fit:cover;object-position:${this.fx * 100}% ${this.fy * 100}%`;
+                                    }
+                                    const b = this.cropBox();
+                                    return `position:absolute;max-width:none;height:auto;` +
+                                        `width:${this.sourceW / b.width * 100}%;` +
+                                        `left:${-b.x / b.width * 100}%;` +
+                                        `top:${-b.y / b.height * 100}%`;
+                                },
+                                cropRectStyle() {
+                                    if (! this.sourceW || ! this.sourceH) { return 'display:none'; }
+                                    const b = this.cropBox();
+                                    return `left:${b.x / this.sourceW * 100}%;top:${b.y / this.sourceH * 100}%;` +
+                                        `width:${b.width / this.sourceW * 100}%;height:${b.height / this.sourceH * 100}%`;
+                                },
                                 pointFromEvent(e) {
                                     const r = $refs.img.getBoundingClientRect();
                                     this.fx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
@@ -86,6 +127,7 @@
                                         conversion: {{ $conversion->id }},
                                         x: this.fx,
                                         y: this.fy,
+                                        zoom: this.zoom,
                                     }, { schemaComponent: @js($key) });
                                 },
                             }"
@@ -102,6 +144,7 @@
                                 x-on:pointercancel="end()"
                             >
                                 <img x-ref="img" src="{{ $value->url() }}" alt="" draggable="false" />
+                                <span class="fmm-focus-crop-rect" x-bind:style="cropRectStyle()"></span>
                                 <span class="fmm-focus-marker" x-bind:style="`left:${fx * 100}%;top:${fy * 100}%`"></span>
                             </div>
 
@@ -109,8 +152,28 @@
                                 <img
                                     src="{{ $value->url() }}"
                                     alt=""
-                                    x-bind:style="`object-position:${fx * 100}% ${fy * 100}%`"
+                                    x-bind:style="previewStyle()"
                                 />
+                            </div>
+
+                            <div class="fmm-zoom">
+                                <label class="fmm-zoom-label" for="fmm-zoom-{{ $conversion->id }}">
+                                    {{ __('Zoom') }}
+                                    <span class="fmm-zoom-value" x-text="`${zoom.toFixed(1)}×`"></span>
+                                </label>
+                                <input
+                                    id="fmm-zoom-{{ $conversion->id }}"
+                                    type="range"
+                                    class="fmm-zoom-slider"
+                                    min="1"
+                                    max="5"
+                                    step="0.1"
+                                    x-model.number="zoom"
+                                    x-on:change="save()"
+                                />
+                                <p class="fmm-zoom-warning" x-cloak x-show="overZoomed">
+                                    {{ __('Zoomed past the source resolution — the image will be upscaled and may look soft.') }}
+                                </p>
                             </div>
 
                             @if ($conversion->status === ConversionStatus::Failed)

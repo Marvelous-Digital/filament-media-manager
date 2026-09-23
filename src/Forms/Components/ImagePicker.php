@@ -56,6 +56,7 @@ class ImagePicker extends Field
                         $conversion,
                         (float) ($arguments['x'] ?? 0),
                         (float) ($arguments['y'] ?? 0),
+                        (float) ($arguments['zoom'] ?? 1),
                     );
                 }),
             fn (): Action => Action::make('retryConversion')

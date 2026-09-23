@@ -118,13 +118,14 @@ it('updates focus via the updateFocus field action', function () {
     Livewire::test(ImagePickerFieldActionsHarness::class)
         ->set('data.hero_image_id', $value->id)
         ->callFormComponentAction('hero_image_id', 'updateFocus', arguments: [
-            'conversion' => $conversion->id, 'x' => 0.25, 'y' => 0.75,
+            'conversion' => $conversion->id, 'x' => 0.25, 'y' => 0.75, 'zoom' => 2.5,
         ])
         ->assertHasNoFormComponentActionErrors();
 
     $conversion->refresh();
     expect($conversion->focus_x)->toBe(0.25)
         ->and($conversion->focus_y)->toBe(0.75)
+        ->and($conversion->zoom)->toBe(2.5)
         ->and($conversion->status)->toBe(ConversionStatus::Pending);
     Queue::assertPushed(GenerateConversion::class);
 });
