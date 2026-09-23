@@ -7,8 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
 use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
 use MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus;
+use MarvelousDigital\FilamentMediaManager\Jobs\GenerateConversion;
 use Throwable;
 
 /**
@@ -55,6 +57,20 @@ class Media extends Model
 
     protected static function booted(): void
     {
+        static::deleting(function (self $media): void {
+            MediaConversion::query()
+                ->where('media_id', $media->id)
+                ->each(function (MediaConversion $conversion): void {
+                    $conversion->update([
+                        'media_id' => null,
+                        'alt_text' => null,
+                        'status' => ConversionStatus::Pending,
+                    ]);
+
+                    GenerateConversion::dispatchFor($conversion);
+                });
+        });
+
         static::deleted(function (self $media): void {
             try {
                 Storage::disk($media->disk)->deleteDirectory($media->directory());

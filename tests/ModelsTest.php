@@ -1,7 +1,12 @@
 <?php
 
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
+use MarvelousDigital\FilamentMediaManager\Jobs\GenerateConversion;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
+use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
+use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFolder;
 
 it('relates folders and media', function () {
@@ -60,4 +65,22 @@ it('resolves urls for public disks', function () {
     $media = Media::factory()->create(['disk' => 'public', 'path' => 'media/01URL/x.jpg']);
 
     expect($media->url())->toContain('media/01URL/x.jpg');
+});
+
+it('sends overridden variants back to the main image when the override is deleted', function () {
+    Queue::fake();
+    $main = Media::factory()->create();
+    $override = Media::factory()->create();
+    $value = MediaFieldValue::factory()->for($main, 'source')->create();
+    $conversion = MediaConversion::factory()->for($value, 'value')->create([
+        'media_id' => $override->id, 'alt_text' => 'Own', 'status' => ConversionStatus::Completed,
+    ]);
+
+    $override->delete();
+
+    $conversion->refresh();
+    expect($conversion->media_id)->toBeNull()
+        ->and($conversion->alt_text)->toBeNull()
+        ->and($conversion->status)->toBe(ConversionStatus::Pending);
+    Queue::assertPushed(GenerateConversion::class, fn (GenerateConversion $job) => $job->conversion->is($conversion));
 });
