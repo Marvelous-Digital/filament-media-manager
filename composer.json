@@ -1,32 +1,25 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
-    "keywords": [
-        ":vendor_name",
-        "laravel",
-        "filamentphp",
-        "filament",
-        "filament-plugin",
-        ":package_slug"
-    ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "name": "marvelous-digital/filament-media-manager",
+    "description": "A media library plugin for Filament: upload and organize high-fidelity media in nested folders.",
+    "keywords": ["marvelous-digital", "laravel", "filamentphp", "filament", "filament-plugin", "filament-media-manager"],
+    "homepage": "https://github.com/marvelous-digital/filament-media-manager",
     "support": {
-        "issues": "https://github.com/:vendor_slug/:package_slug/issues",
-        "source": "https://github.com/:vendor_slug/:package_slug"
+        "issues": "https://github.com/marvelous-digital/filament-media-manager/issues",
+        "source": "https://github.com/marvelous-digital/filament-media-manager"
     },
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "Raphael Baumann",
+            "email": "raphael.baumann@marvelous.digital",
             "role": "Developer"
         }
     ],
     "require": {
         "php": "^8.2",
         "filament/filament": "^5.0",
-        "filament/forms": "^5.0",
-        "filament/tables": "^5.0",
+        "intervention/image": "^4.0",
+        "laravel/framework": "^13.20",
         "spatie/laravel-package-tools": "^1.15.0"
     },
     "require-dev": {
@@ -38,23 +31,24 @@
         "pestphp/pest-plugin-arch": "^3.0|^4.0",
         "pestphp/pest-plugin-laravel": "^3.0|^4.0",
         "pestphp/pest-plugin-livewire": "^3.0|^4.0",
+        "phpstan/extension-installer": "^1.4",
         "rector/rector": "^2.0",
         "spatie/laravel-ray": "^1.26"
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "MarvelousDigital\\FilamentMediaManager\\": "src/",
+            "MarvelousDigital\\FilamentMediaManager\\Database\\Factories\\": "database/factories/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/"
+            "MarvelousDigital\\FilamentMediaManager\\Tests\\": "tests/"
         }
     },
     "scripts": {
         "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi",
-        "analyse": "phpstan analyse",
+        "analyse": "phpstan analyse --memory-limit=1G",
         "lint": "pint",
         "refactor": "rector",
         "test": "pest",
@@ -64,11 +58,8 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
-            ],
-            "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
-            }
+                "MarvelousDigital\\FilamentMediaManager\\MediaManagerServiceProvider"
+            ]
         }
     },
     "config": {
