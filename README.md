@@ -86,6 +86,15 @@ return [
 
     // Grid items loaded per "Load more" chunk.
     'per_page' => 30,
+
+    // Database tables. Prefixed so they don't clash with spatie/laravel-medialibrary's `media` table.
+    // Set these before running the migrations.
+    'table_names' => [
+        'media' => 'media_manager_media',
+        'folders' => 'media_manager_folders',
+        'field_values' => 'media_manager_field_values',
+        'conversions' => 'media_manager_conversions',
+    ],
 ];
 ```
 
@@ -108,6 +117,9 @@ return [
 - **`thumbnail.queue`** — when `true` (the default), thumbnail generation is dispatched to the queue after upload, so the request returns immediately and the grid shows a pending state until the job finishes. Set to `false` to generate the thumbnail synchronously during the upload request instead — useful for local development without a queue worker running, or for a `sync` queue connection.
 - **`thumbnail.queue_name`** — the queue name the `GenerateThumbnail` job is dispatched to. `null` uses the connection's default queue.
 - **`per_page`** — number of items fetched per "Load more" click in the media grid.
+- **`table_names`** — the database tables the package creates and reads. The defaults are prefixed with `media_manager_` so the package can be installed next to `spatie/laravel-medialibrary` (and plugins built on it, such as `ralphjsmit/laravel-filament-media-library`), which own a `media` table. Change them before running the migrations: the published migrations read them too.
+
+  **Upgrading from an install that created unprefixed tables** (`media`, `media_folders`, `media_field_values`, `media_conversions`): either keep those names by setting them in your published config, or rename the tables in a migration of your own.
 
 ## Usage
 

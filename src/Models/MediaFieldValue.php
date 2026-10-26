@@ -27,6 +27,11 @@ class MediaFieldValue extends Model
 
     protected $fillable = ['media_id', 'alt_text', 'created_by'];
 
+    public function getTable(): string
+    {
+        return config('filament-media-manager.table_names.field_values', 'media_manager_field_values');
+    }
+
     protected static function booted(): void
     {
         static::deleted(function (self $value): void {

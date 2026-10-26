@@ -37,12 +37,15 @@ class Media extends Model
 {
     use HasFactory;
 
-    protected $table = 'media';
-
     protected $fillable = [
         'folder_id', 'name', 'file_name', 'disk', 'path', 'mime_type', 'type',
         'size', 'width', 'height', 'alt_text', 'thumbnail_path', 'thumbnail_status', 'created_by',
     ];
+
+    public function getTable(): string
+    {
+        return config('filament-media-manager.table_names.media', 'media_manager_media');
+    }
 
     protected function casts(): array
     {

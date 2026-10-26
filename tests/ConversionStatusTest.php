@@ -1,7 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\DB;
 use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
+use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
+use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
 
 it('has the expected string values', function () {
     expect(ConversionStatus::Pending->value)->toBe('pending')
@@ -12,8 +13,6 @@ it('has the expected string values', function () {
 
 it('creates the media field tables', function () {
     // Tables exist and are empty (migrations ran in the test harness).
-    // Note: MediaFieldValue and MediaConversion Eloquent models are created in
-    // a later task; here we assert directly against the query builder.
-    expect(DB::table('media_field_values')->count())->toBe(0)
-        ->and(DB::table('media_conversions')->count())->toBe(0);
+    expect(MediaFieldValue::query()->count())->toBe(0)
+        ->and(MediaConversion::query()->count())->toBe(0);
 });

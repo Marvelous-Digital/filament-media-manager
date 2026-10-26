@@ -25,6 +25,11 @@ class MediaFolder extends Model
 
     protected $fillable = ['name', 'parent_id'];
 
+    public function getTable(): string
+    {
+        return config('filament-media-manager.table_names.folders', 'media_manager_folders');
+    }
+
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');

@@ -2,6 +2,10 @@
 
 All notable changes to `filament-media-manager` will be documented in this file.
 
+## Unreleased
+
+- Configurable table names (`table_names` config key), prefixed with `media_manager_` by default so the package no longer clashes with `spatie/laravel-medialibrary`'s `media` table. **Breaking** for existing installs: keep the old names by setting them in the published config, or rename the tables.
+
 ## v0.2.0 - 2026-07-23
 
 - `ImagePicker` form component: lets a resource select a single image from the media library (or upload one and select it) without copying the underlying file, via a `MediaFieldValue` usage record referencing the shared original `Media`.

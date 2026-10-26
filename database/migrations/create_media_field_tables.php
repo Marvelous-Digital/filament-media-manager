@@ -8,17 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('media_field_values', function (Blueprint $table) {
+        $tables = config('filament-media-manager.table_names');
+
+        Schema::create($tables['field_values'], function (Blueprint $table) use ($tables) {
             $table->id();
-            $table->foreignId('media_id')->constrained('media')->cascadeOnDelete();
+            $table->foreignId('media_id')->constrained($tables['media'])->cascadeOnDelete();
             $table->string('alt_text')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('media_conversions', function (Blueprint $table) {
+        Schema::create($tables['conversions'], function (Blueprint $table) use ($tables) {
             $table->id();
-            $table->foreignId('media_field_value_id')->constrained('media_field_values')->cascadeOnDelete();
+            $table->foreignId('media_field_value_id')->constrained($tables['field_values'])->cascadeOnDelete();
             $table->string('variation');
             $table->unsignedInteger('width');
             $table->unsignedInteger('height');
@@ -27,7 +29,7 @@ return new class extends Migration
             $table->float('zoom')->default(1.0);
             $table->string('path')->nullable();
             $table->string('status')->default('pending');
-            $table->foreignId('media_id')->nullable()->constrained('media')->nullOnDelete();
+            $table->foreignId('media_id')->nullable()->constrained($tables['media'])->nullOnDelete();
             $table->string('alt_text')->nullable();
             $table->timestamps();
 
@@ -37,7 +39,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('media_conversions');
-        Schema::dropIfExists('media_field_values');
+        $tables = config('filament-media-manager.table_names');
+
+        Schema::dropIfExists($tables['conversions']);
+        Schema::dropIfExists($tables['field_values']);
     }
 };

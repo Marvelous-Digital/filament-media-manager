@@ -55,7 +55,7 @@ class MediaLibrary extends Page
                     ->required()
                     ->maxLength(255)
                     ->rules([
-                        fn () => Rule::unique('media_folders', 'name')->where('parent_id', $this->folderId),
+                        fn () => Rule::unique(MediaFolder::class, 'name')->where('parent_id', $this->folderId),
                     ]),
             ])
             ->action(function (array $data): void {
@@ -77,7 +77,7 @@ class MediaLibrary extends Page
                     ->required()
                     ->maxLength(255)
                     ->rules([
-                        fn () => Rule::unique('media_folders', 'name')
+                        fn () => Rule::unique(MediaFolder::class, 'name')
                             ->where('parent_id', MediaFolder::find((int) $arguments['folder'])?->parent_id)
                             ->ignore($arguments['folder']),
                     ]),

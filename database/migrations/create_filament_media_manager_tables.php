@@ -8,18 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('media_folders', function (Blueprint $table) {
+        $tables = config('filament-media-manager.table_names');
+
+        Schema::create($tables['folders'], function (Blueprint $table) use ($tables) {
             $table->id();
             $table->string('name');
-            $table->foreignId('parent_id')->nullable()->constrained('media_folders')->cascadeOnDelete();
+            $table->foreignId('parent_id')->nullable()->constrained($tables['folders'])->cascadeOnDelete();
             $table->timestamps();
 
             $table->unique(['parent_id', 'name']);
         });
 
-        Schema::create('media', function (Blueprint $table) {
+        Schema::create($tables['media'], function (Blueprint $table) use ($tables) {
             $table->id();
-            $table->foreignId('folder_id')->nullable()->constrained('media_folders')->nullOnDelete();
+            $table->foreignId('folder_id')->nullable()->constrained($tables['folders'])->nullOnDelete();
             $table->string('name');
             $table->string('file_name');
             $table->string('disk');
@@ -39,7 +41,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('media');
-        Schema::dropIfExists('media_folders');
+        $tables = config('filament-media-manager.table_names');
+
+        Schema::dropIfExists($tables['media']);
+        Schema::dropIfExists($tables['folders']);
     }
 };

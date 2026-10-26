@@ -26,4 +26,13 @@ return [
 
     // Grid items loaded per "Load more" chunk.
     'per_page' => 30,
+
+    // Database tables. Prefixed so they don't clash with spatie/laravel-medialibrary's `media` table.
+    // Set these before running the migrations.
+    'table_names' => [
+        'media' => 'media_manager_media',
+        'folders' => 'media_manager_folders',
+        'field_values' => 'media_manager_field_values',
+        'conversions' => 'media_manager_conversions',
+    ],
 ];

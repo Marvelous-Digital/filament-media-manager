@@ -38,6 +38,11 @@ class MediaConversion extends Model
         'focus_x', 'focus_y', 'zoom', 'path', 'status', 'media_id', 'alt_text',
     ];
 
+    public function getTable(): string
+    {
+        return config('filament-media-manager.table_names.conversions', 'media_manager_conversions');
+    }
+
     protected function casts(): array
     {
         return [
