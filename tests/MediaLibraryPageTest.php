@@ -65,3 +65,9 @@ it('resets pagination when the search changes', function () {
         ->set('search', 'anything')
         ->assertSet('loadedPages', 1);
 });
+
+it('is served under its own slug so it does not clash with other media library pages', function () {
+    expect(MediaLibrary::getUrl())->toEndWith('/admin/media-manager');
+
+    $this->get('/admin/media-manager')->assertOk();
+});

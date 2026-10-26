@@ -53,7 +53,7 @@ If you use the default `public` disk (or any other disk that needs a symlink int
 php artisan storage:link
 ```
 
-The plugin adds a "Media Library" page to the panel's navigation.
+The plugin adds a "Media" page to the panel's navigation, at `/{panel}/media-manager`.
 
 ## Configuration
 

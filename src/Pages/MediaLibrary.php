@@ -25,6 +25,8 @@ class MediaLibrary extends Page
 
     protected string $view = 'filament-media-manager::media-library';
 
+    protected static ?string $slug = 'media-manager';
+
     /** @var array<int> */
     public array $selected = [];
 

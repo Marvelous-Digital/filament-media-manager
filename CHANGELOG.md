@@ -5,6 +5,7 @@ All notable changes to `filament-media-manager` will be documented in this file.
 ## Unreleased
 
 - Configurable table names (`table_names` config key), prefixed with `media_manager_` by default so the package no longer clashes with `spatie/laravel-medialibrary`'s `media` table. **Breaking** for existing installs: keep the old names by setting them in the published config, or rename the tables.
+- The media page is served at `/{panel}/media-manager` instead of `/{panel}/media-library`, so it no longer takes over the route of `ralphjsmit/laravel-filament-media-library`'s page.
 
 ## v0.2.0 - 2026-07-23
 
