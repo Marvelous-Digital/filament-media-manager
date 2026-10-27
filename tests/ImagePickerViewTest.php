@@ -40,6 +40,27 @@ class RenderHarness extends Component implements HasActions, HasForms
     }
 }
 
+class NoVariationsRenderHarness extends RenderHarness
+{
+    public function form(Schema $schema): Schema
+    {
+        return $schema->components([
+            ImagePicker::make('hero_image_id'),
+        ])->statePath('data');
+    }
+}
+
+it('renders without variant cards when no variations are configured', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory()->state(['width' => 2000, 'height' => 1000]), 'source')->create(['alt_text' => 'hi']);
+
+    Livewire::test(NoVariationsRenderHarness::class, ['preset' => $value->id])
+        ->assertOk()
+        ->assertSee('Alt text')
+        ->assertDontSee('Reframe')
+        ->assertDontSee('Use different image')
+        ->assertDontSee('Required formats');
+});
+
 it('shows the required formats as ratios before anything is picked', function () {
     Livewire::test(RenderHarness::class)
         ->assertOk()

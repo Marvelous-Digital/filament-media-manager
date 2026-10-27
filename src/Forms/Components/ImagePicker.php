@@ -123,7 +123,7 @@ class ImagePicker extends Field
      */
     public function getVariations(): array
     {
-        return $this->variations !== [] ? $this->variations : ['default' => [1200, 1200]];
+        return $this->variations;
     }
 
     public function getDisk(): string

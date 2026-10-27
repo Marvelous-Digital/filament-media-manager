@@ -159,3 +159,13 @@ it('recreates the row when the saved id no longer exists', function () use ($var
     expect($id)->not->toBe(999999)
         ->and(MediaFieldValue::query()->whereKey($id)->exists())->toBeTrue();
 });
+
+it('creates no conversions when the field has no variations', function () {
+    Queue::fake();
+    $media = Media::factory()->create();
+
+    $id = app(PersistImagePicker::class)->execute(['id' => null, 'media_id' => $media->id, 'alt' => 'A', 'variants' => []], []);
+
+    expect(MediaFieldValue::find($id)->conversions)->toHaveCount(0);
+    Queue::assertNothingPushed();
+});
