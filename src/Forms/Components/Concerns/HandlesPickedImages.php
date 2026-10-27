@@ -37,7 +37,19 @@ trait HandlesPickedImages
                 return null;
             }
 
-            return app(UploadMedia::class)->execute($file);
+            $media = app(UploadMedia::class)->execute($file);
+
+            if ($media->type !== MediaType::Image) {
+                Notification::make()
+                    ->title(__('Upload failed'))
+                    ->body(__('Only images can be used here. The file was added to the media library.'))
+                    ->danger()
+                    ->send();
+
+                return null;
+            }
+
+            return $media;
         } catch (ValidationException $exception) {
             Notification::make()
                 ->title(__('Upload failed'))

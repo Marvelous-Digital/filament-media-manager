@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
+use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
 use MarvelousDigital\FilamentMediaManager\Forms\Components\ImagesPicker;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
@@ -32,6 +33,8 @@ class ImagesPickerFormHarness extends Component implements HasActions, HasForms
 
     public bool $requireGallery = false;
 
+    public bool $acceptPdf = false;
+
     public function mount(): void
     {
         $this->form->fill(['gallery' => $this->preset]);
@@ -41,7 +44,10 @@ class ImagesPickerFormHarness extends Component implements HasActions, HasForms
     {
         return $schema
             ->components([
-                ImagesPicker::make('gallery')->variations(['tile' => [800, 450]])->required($this->requireGallery),
+                ImagesPicker::make('gallery')
+                    ->variations(['tile' => [800, 450]])
+                    ->required($this->requireGallery)
+                    ->when($this->acceptPdf, fn (ImagesPicker $field) => $field->fileAttachmentsAcceptedFileTypes(['image/jpeg', 'application/pdf'])),
             ])
             ->statePath('data');
     }
@@ -247,4 +253,18 @@ it('confirms each image added while the library stays open', function () use ($g
     $galleryPicker($livewire, 'selectImage', ['target' => 'append', 'mediaId' => $media->id]);
 
     $livewire->assertNotified('Image added');
+});
+
+it('does not append an uploaded file that is not an image', function () use ($galleryPicker) {
+    // Filament only lets images through by default; a field may widen the accepted types.
+    Storage::fake('public');
+
+    $livewire = Livewire::test(ImagesPickerFormHarness::class, ['acceptPdf' => true])
+        ->set('componentFileAttachments.data.gallery', UploadedFile::fake()->createWithContent('notes.pdf', "%PDF-1.4\n%%EOF"));
+    $galleryPicker($livewire, 'storeUploadedImage', ['target' => 'append']);
+
+    expect(Media::query()->sole()->type)->toBe(MediaType::Document);
+    $livewire->assertSet('data.gallery.items', [])
+        ->assertNotified('Upload failed')
+        ->assertSet('componentFileAttachments.data.gallery', null);
 });

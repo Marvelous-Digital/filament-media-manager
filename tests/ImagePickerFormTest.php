@@ -16,6 +16,7 @@ use Livewire\Component;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
+use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
 use MarvelousDigital\FilamentMediaManager\Forms\Components\ImagePicker;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateConversion;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
@@ -40,6 +41,8 @@ class ImagePickerFormHarness extends Component implements HasActions, HasForms
 
     public bool $requireHero = false;
 
+    public bool $acceptPdf = false;
+
     public function mount(): void
     {
         $this->form->fill(['hero' => $this->preset]);
@@ -50,7 +53,10 @@ class ImagePickerFormHarness extends Component implements HasActions, HasForms
         return $schema
             ->components([
                 TextInput::make('title')->required($this->withRequiredTitle),
-                ImagePicker::make('hero')->variations(['desktop' => [1500, 900], 'mobile' => [480, 640]])->required($this->requireHero),
+                ImagePicker::make('hero')
+                    ->variations(['desktop' => [1500, 900], 'mobile' => [480, 640]])
+                    ->required($this->requireHero)
+                    ->when($this->acceptPdf, fn (ImagePicker $field) => $field->fileAttachmentsAcceptedFileTypes(['image/jpeg', 'application/pdf'])),
             ])
             ->statePath('data');
     }
@@ -374,4 +380,16 @@ it('does not retry a conversion of a row the browser pointed it at', function ()
 
     expect($conversion->refresh()->status)->toBe(ConversionStatus::Failed);
     Queue::assertNothingPushed();
+});
+
+it('does not select an uploaded file that is not an image', function () {
+    // Filament only lets images through by default; a field may widen the accepted types.
+    Storage::fake('public');
+
+    $livewire = Livewire::test(ImagePickerFormHarness::class, ['acceptPdf' => true])
+        ->set('componentFileAttachments.data.hero', UploadedFile::fake()->createWithContent('notes.pdf', "%PDF-1.4\n%%EOF"));
+    callPicker($livewire, 'storeUploadedImage', ['target' => 'main']);
+
+    expect(Media::query()->sole()->type)->toBe(MediaType::Document);
+    $livewire->assertSet('data.hero', null)->assertNotified('Upload failed');
 });
