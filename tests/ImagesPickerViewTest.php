@@ -127,3 +127,16 @@ it('listens for library picks with a window listener Alpine cleans up', function
         ->assertSee('x-on:image-picker:selected.window="selected($event.detail)"', escape: false)
         ->assertDontSee('addEventListener', escape: false);
 });
+
+it('shows a missing badge instead of an empty image for media deleted from the library', function () {
+    $kept = MediaFieldValue::factory()->for(Media::factory()->state(['thumbnail_path' => 'thumbs/kept.webp']), 'source')->create();
+    $gone = MediaFieldValue::factory()->for(Media::factory()->state(['thumbnail_path' => 'thumbs/gone.webp']), 'source')->create();
+    $gone->source->delete();
+
+    Livewire::test(ImagesPickerRenderHarness::class, ['preset' => [$kept->id, $gone->id]])
+        ->assertOk()
+        ->assertSee('thumbs/kept.webp')
+        ->assertDontSee('thumbs/gone.webp')
+        ->assertSee('Missing from the library')
+        ->assertDontSee('src=""', escape: false);
+});

@@ -106,4 +106,7 @@
 .fmm-images-remove { position: absolute; top: 0.25rem; right: 0.25rem; background: rgba(255, 255, 255, 0.9); border-radius: 9999px; }
 .dark .fmm-images-remove { background: rgba(24, 24, 27, 0.9); }
 .fmm-images-empty { font-size: 0.875rem; color: rgb(107 114 128); }
+.fmm-images-missing { display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; padding: 0.5rem; text-align: center; font-size: 0.75rem; color: rgb(185 28 28); }
+.dark .fmm-images-missing { color: rgb(252 165 165); }
+.fmm-images-missing-icon { width: 1.5rem; height: 1.5rem; }
 .fmm-images-item.fi-sortable-ghost { opacity: 0.4; }

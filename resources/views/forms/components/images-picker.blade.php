@@ -63,7 +63,15 @@
                         x-sortable-item="{{ $item['key'] }}"
                     >
                         <div class="fmm-images-thumb" x-sortable-handle title="{{ __('Drag to reorder') }}">
-                            <img src="{{ $thumbnails[$item['media_id']] ?? '' }}" alt="{{ $item['alt'] }}" draggable="false" />
+                            @if (filled($thumbnails[$item['media_id']] ?? null))
+                                <img src="{{ $thumbnails[$item['media_id']] }}" alt="{{ $item['alt'] }}" draggable="false" />
+                            @else
+                                {{-- Deleted from the library since it was picked; saving fails until it is removed. --}}
+                                <div class="fmm-images-missing">
+                                    <x-filament::icon icon="heroicon-o-exclamation-triangle" class="fmm-images-missing-icon" />
+                                    <span>{{ __('Missing from the library') }}</span>
+                                </div>
+                            @endif
                             <x-filament::icon-button
                                 class="fmm-images-remove"
                                 icon="heroicon-o-trash"
