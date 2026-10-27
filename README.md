@@ -170,7 +170,9 @@ ImagePicker::make('hero_image_id')
     ]);
 ```
 
-If `->variations()` is omitted, no variations are declared: the field does not crop or generate any conversions and serves the original image. (Earlier versions fell back to an implicit `default` variation of `[1200, 1200]`; fields that relied on that crop must now pass `->variations()` explicitly.) By default the field stores files on `config('filament-media-manager.disk')`; override per-field with `->disk('public')`.
+If `->variations()` is omitted, no variations are declared: the field does not crop or generate any conversions and serves the original image. By default the field stores files on `config('filament-media-manager.disk')`; override per-field with `->disk('public')`.
+
+> **Upgrading from v0.2:** earlier versions fell back to an implicit `default` variation of `[1200, 1200]`. A field without `->variations()` now deletes that `default` conversion and its file the next time it is saved, so `->conversion('default')?->url()` starts returning `null`. To keep the crop, declare it explicitly with `->variations(['default' => [1200, 1200]])`. Otherwise read the image with `urlFor('default')`, which falls back to the original once the conversion is gone.
 
 Consume the picked image wherever you render the parent model:
 
@@ -189,6 +191,10 @@ $post->heroImage?->urlFor();        // the original image
 $post->heroImage?->altFor('hero');  // the variation's effective alt text, or the main alt text
 $post->heroImage?->altFor();        // the main alt text
 ```
+
+### Setting the value from server code
+
+The field keeps its state as structured data in the form, and each saved id in it carries a signed token, so a save only updates or deletes rows the server handed to the form. To put a stored value into the field from server code (for example when switching the language of a translatable attribute), use `$set('hero_image_id', $id)` or `$component->state($id)`: the field hydrates it on the spot. A plain id written into the form data any other way (including by the browser) is not trusted: it is shown, but saved as a new row rather than updating the one it names. The same applies to `ImagesPicker` and its id lists.
 
 ### Duplicating field values
 
