@@ -6,6 +6,7 @@ use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Concerns\HasFileAttachments;
 use Filament\Forms\Components\Field;
+use Filament\Notifications\Notification;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\View\View;
@@ -221,5 +222,8 @@ class ImagesPicker extends Field
         $media->ensureDimensions();
 
         $this->state(ImagesPickerState::withImage($this->getPickerState(), $media));
+
+        // The library browser stays open over the grid while appending, so confirm each pick.
+        Notification::make()->title(__('Image added'))->success()->duration(2000)->send();
     }
 }

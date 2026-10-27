@@ -239,3 +239,12 @@ it('skips malformed items instead of failing', function () use ($galleryPicker) 
     expect($saved)->toHaveCount(1)
         ->and(MediaFieldValue::find($saved[0])->media_id)->toBe($media->id);
 });
+
+it('confirms each image added while the library stays open', function () use ($galleryPicker) {
+    $media = Media::factory()->create();
+
+    $livewire = Livewire::test(ImagesPickerFormHarness::class);
+    $galleryPicker($livewire, 'selectImage', ['target' => 'append', 'mediaId' => $media->id]);
+
+    $livewire->assertNotified('Image added');
+});
