@@ -83,12 +83,15 @@ it('keeps the order of a list and drops missing ids', function () {
     $a = sourceValue(['alt_text' => 'A']);
     $b = sourceValue(['alt_text' => 'B']);
 
-    $ids = duplicate([$a->id, 999999, $b->id]);
+    $ids = duplicate([$b->id, 999999, $a->id]);
 
     expect($ids)->toHaveCount(2)
-        ->and(MediaFieldValue::find($ids[0])->alt_text)->toBe('A')
-        ->and(MediaFieldValue::find($ids[1])->alt_text)->toBe('B')
-        ->and($ids[0])->not->toBe($a->id);
+        ->and(MediaFieldValue::find($ids[0])->media_id)->toBe($b->media_id)
+        ->and(MediaFieldValue::find($ids[0])->alt_text)->toBe('B')
+        ->and(MediaFieldValue::find($ids[1])->media_id)->toBe($a->media_id)
+        ->and(MediaFieldValue::find($ids[1])->alt_text)->toBe('A')
+        ->and($ids)->not->toContain($a->id)
+        ->and($ids)->not->toContain($b->id);
 });
 
 it('leaves the source rows untouched', function () {
