@@ -170,7 +170,7 @@ ImagePicker::make('hero_image_id')
     ]);
 ```
 
-If `->variations()` is omitted, a single implicit `default` variation of `[1200, 1200]` is used. By default the field stores files on `config('filament-media-manager.disk')`; override per-field with `->disk('public')`.
+If `->variations()` is omitted, no variations are declared: the field does not crop or generate any conversions and serves the original image. (Earlier versions fell back to an implicit `default` variation of `[1200, 1200]`; fields that relied on that crop must now pass `->variations()` explicitly.) By default the field stores files on `config('filament-media-manager.disk')`; override per-field with `->disk('public')`.
 
 Consume the picked image wherever you render the parent model:
 
@@ -179,6 +179,84 @@ $post->heroImage?->conversion('hero')?->url();               // a named conversi
 $post->heroImage?->conversion('hero')?->effectiveAltText();  // variation alt (own image) or main alt
 $post->heroImage?->alt_text;                                  // main alt text
 $post->heroImage?->url();                                     // the original, unconverted main image
+```
+
+`urlFor()` and `altFor()` are shorter helpers that fall back to the original when a variation does not exist (or no variation is given):
+
+```php
+$post->heroImage?->urlFor('hero');  // the 'hero' conversion URL, or the original if it has none
+$post->heroImage?->urlFor();        // the original image
+$post->heroImage?->altFor('hero');  // the variation's effective alt text, or the main alt text
+$post->heroImage?->altFor();        // the main alt text
+```
+
+### Duplicating field values
+
+A `MediaFieldValue` belongs to one owner. To give another record (for example a copy of a page in another language) its own independent rows, run the stored value through `DuplicateMediaFieldValue`. It accepts a single id or a list of ids, copies each value together with its conversions (regenerated in the background), and returns the new id(s). Ids without a row are dropped and other values pass through unchanged. An optional callback maps each alt text, e.g. to translate it:
+
+```php
+use MarvelousDigital\FilamentMediaManager\Actions\DuplicateMediaFieldValue;
+
+$copy->hero_image_id = app(DuplicateMediaFieldValue::class)->execute($page->hero_image_id);
+
+$copy->gallery = app(DuplicateMediaFieldValue::class)->execute(
+    $page->gallery,
+    fn (string $alt): string => translate($alt, 'fr'),
+);
+```
+
+## ImagesPicker field
+
+`ImagesPicker` lets a user pick several images from the media library (or upload new ones), shown as a sortable grid. Drag images to reorder them, remove any of them, and give each image its own alt text. As with `ImagePicker`, nothing is written until the form is saved, and the original files are never copied.
+
+The field stores an ordered array of `MediaFieldValue` ids, so use a JSON column and cast it to an array:
+
+```php
+$table->json('gallery')->nullable();
+```
+
+```php
+protected function casts(): array
+{
+    return [
+        'gallery' => 'array',
+    ];
+}
+```
+
+Add the field to a form. `->variations()` is optional and works like on `ImagePicker`: when given, every image is cropped and converted to each variation; without it the originals are used as they are. `->disk()` overrides the storage disk, and `->required()` demands at least one image.
+
+```php
+use MarvelousDigital\FilamentMediaManager\Forms\Components\ImagesPicker;
+
+ImagesPicker::make('gallery')
+    ->variations([
+        'card'  => [800, 600],
+        'thumb' => [400, 400],
+    ]);
+```
+
+Resolve the stored ids to models yourself, keeping their order, for example with an accessor:
+
+```php
+use Illuminate\Database\Eloquent\Collection;
+use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
+
+public function galleryImages(): Collection
+{
+    $ids = $this->gallery ?? [];
+
+    return MediaFieldValue::with(['source', 'conversions'])
+        ->findMany($ids)
+        ->sortBy(fn (MediaFieldValue $image) => array_search($image->id, $ids))
+        ->values();
+}
+```
+
+```php
+@foreach ($post->galleryImages() as $image)
+    <img src="{{ $image->urlFor('card') }}" alt="{{ $image->altFor('card') }}">
+@endforeach
 ```
 
 ## Roadmap

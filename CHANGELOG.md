@@ -4,6 +4,10 @@ All notable changes to `filament-media-manager` will be documented in this file.
 
 ## Unreleased
 
+- `ImagesPicker` form component: pick several images in a sortable grid with per-image alt text and optional `->variations()`, stored as an ordered array of `MediaFieldValue` ids.
+- `MediaFieldValue::urlFor()` and `altFor()`: URL and alt text of a variation, falling back to the original image and main alt text.
+- `DuplicateMediaFieldValue` action: copies stored field values (single id or list) and their conversions into new rows, with an optional alt-text mapping callback.
+- `ImagePicker` no longer crops by default: without `->variations()` there are no variations, no conversions and the original image is used. **Breaking** for fields that relied on the implicit `default` 1200x1200 crop: pass `->variations()` explicitly.
 - Configurable table names (`table_names` config key), prefixed with `media_manager_` by default so the package no longer clashes with `spatie/laravel-medialibrary`'s `media` table. **Breaking** for existing installs: keep the old names by setting them in the published config, or rename the tables.
 - The media page is served at `/{panel}/media-manager` instead of `/{panel}/media-library`, so it no longer takes over the route of `ralphjsmit/laravel-filament-media-library`'s page.
 
