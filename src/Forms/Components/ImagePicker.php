@@ -137,6 +137,17 @@ class ImagePicker extends Field
     }
 
     /**
+     * Server code that sets a stored value (e.g. `$set('hero', 5)`) gets it hydrated, with its
+     * token, right away. Browser updates never pass through here.
+     */
+    public function state(mixed $state): static
+    {
+        $state = $this->evaluate($state);
+
+        return parent::state(is_array($state) ? $state : ImagePickerState::fromStoredValue($state, $this->getVariations()));
+    }
+
+    /**
      * The state to render, written back into the form so the browser edits the same shape the
      * server saves. A value the browser replaced with a plain id becomes a new copy.
      *
