@@ -9,14 +9,14 @@
     <div
         class="fmm-images-picker"
         wire:key="fmm-images-picker-{{ $statePath }}"
+        {{-- Alpine removes .window listeners with the element, so a rebuilt field never listens twice. --}}
+        x-on:image-picker:selected.window="selected($event.detail)"
         x-data="{
             state: $wire.{{ $applyStateBindingModifiers("\$entangle('{$statePath}')") }},
             uploading: false,
-            init() {
-                window.addEventListener('image-picker:selected', (e) => {
-                    if (e.detail?.statePath !== @js($statePath)) return;
-                    this.call('selectImage', { target: e.detail.target, mediaId: e.detail.mediaId });
-                });
+            selected(detail) {
+                if (detail?.statePath !== @js($statePath)) return;
+                this.call('selectImage', { target: detail.target, mediaId: detail.mediaId });
             },
             call(method, args = {}) {
                 return $wire.callSchemaComponentMethod(@js($key), method, args);

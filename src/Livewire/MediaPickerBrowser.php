@@ -32,7 +32,7 @@ class MediaPickerBrowser extends Component
 
         // Appending (ImagesPicker) keeps the browser open so several images can be picked in one visit.
         if ($this->target !== 'append') {
-            $this->dispatch('image-picker:close');
+            $this->dispatch('image-picker:close', statePath: $this->statePath);
         }
     }
 

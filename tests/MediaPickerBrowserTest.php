@@ -21,7 +21,7 @@ it('dispatches the selection with its target and persists nothing', function () 
     Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.hero', 'target' => 'mobile'])
         ->call('select', $media->id)
         ->assertDispatched('image-picker:selected', statePath: 'data.hero', target: 'mobile', mediaId: $media->id)
-        ->assertDispatched('image-picker:close');
+        ->assertDispatched('image-picker:close', statePath: 'data.hero');
 
     expect(MediaFieldValue::query()->count())->toBe(0);
 });

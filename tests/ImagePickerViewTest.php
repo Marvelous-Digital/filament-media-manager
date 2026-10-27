@@ -178,3 +178,10 @@ it('renders a plain id the browser set instead of an empty field', function () {
         ->and($saved)->not->toBe($value->id)
         ->and($value->refresh()->alt_text)->toBe('Before');
 });
+
+it('listens for library picks and closes with window listeners Alpine cleans up', function () {
+    Livewire::test(RenderHarness::class)
+        ->assertSee('x-on:image-picker:selected.window="selected($event.detail)"', escape: false)
+        ->assertSee('x-on:image-picker:close.window="closed($event.detail)"', escape: false)
+        ->assertDontSee('addEventListener', escape: false);
+});

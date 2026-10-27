@@ -121,3 +121,9 @@ it('hydrates a plain id list the browser set before rendering so alt edits are k
         ->and($saved[0])->not->toBe($value->id)
         ->and($value->refresh()->alt_text)->toBe('Before');
 });
+
+it('listens for library picks with a window listener Alpine cleans up', function () {
+    Livewire::test(ImagesPickerRenderHarness::class)
+        ->assertSee('x-on:image-picker:selected.window="selected($event.detail)"', escape: false)
+        ->assertDontSee('addEventListener', escape: false);
+});
