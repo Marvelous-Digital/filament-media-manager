@@ -6,17 +6,13 @@ use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Concerns\HasFileAttachments;
 use Filament\Forms\Components\Field;
-use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\View\View;
-use Illuminate\Validation\ValidationException;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use MarvelousDigital\FilamentMediaManager\Actions\PersistImagePicker;
-use MarvelousDigital\FilamentMediaManager\Actions\UploadMedia;
 use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
-use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
+use MarvelousDigital\FilamentMediaManager\Forms\Components\Concerns\HandlesPickedImages;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateConversion;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
@@ -25,6 +21,7 @@ use MarvelousDigital\FilamentMediaManager\Support\ImagePickerState;
 
 class ImagePicker extends Field
 {
+    use HandlesPickedImages;
     use HasFileAttachments;
 
     protected string $view = 'filament-media-manager::forms.components.image-picker';
@@ -134,44 +131,21 @@ class ImagePicker extends Field
     #[ExposedLivewireMethod]
     public function selectImage(string $target, int $mediaId): void
     {
-        $media = Media::query()->whereKey($mediaId)->where('type', MediaType::Image)->first();
+        $media = $this->imageOrNotify($mediaId);
 
-        if (! $media) {
-            Notification::make()->title(__('This image is no longer in the library.'))->danger()->send();
-
-            return;
+        if ($media) {
+            $this->applyMedia($target, $media);
         }
-
-        $this->applyMedia($target, $media);
     }
 
     #[ExposedLivewireMethod]
     public function storeUploadedImage(string $target): void
     {
-        $file = $this->getUploadedFileAttachment();
+        $media = $this->uploadedMediaOrNotify();
 
-        try {
-            if (! $file instanceof TemporaryUploadedFile) {
-                Notification::make()->title(__('Upload failed'))->body(__('The file could not be uploaded. Please try again.'))->danger()->send();
-
-                return;
-            }
-
-            $media = app(UploadMedia::class)->execute($file);
-        } catch (ValidationException $exception) {
-            Notification::make()
-                ->title(__('Upload failed'))
-                ->body(implode(' ', collect($exception->errors())->flatten()->all()))
-                ->danger()
-                ->send();
-
-            return;
-        } finally {
-            $livewire = $this->getLivewire();
-            data_set($livewire, "componentFileAttachments.{$this->getStatePath()}", null);
+        if ($media) {
+            $this->applyMedia($target, $media);
         }
-
-        $this->applyMedia($target, $media);
     }
 
     #[ExposedLivewireMethod]
