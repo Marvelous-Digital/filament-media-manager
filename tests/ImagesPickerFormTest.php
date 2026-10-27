@@ -35,6 +35,9 @@ class ImagesPickerFormHarness extends Component implements HasActions, HasForms
 
     public bool $acceptPdf = false;
 
+    /** @var array<string, array{0: int, 1: int}> */
+    public array $galleryVariations = ['tile' => [800, 450]];
+
     public function mount(): void
     {
         $this->form->fill(['gallery' => $this->preset]);
@@ -45,7 +48,7 @@ class ImagesPickerFormHarness extends Component implements HasActions, HasForms
         return $schema
             ->components([
                 ImagesPicker::make('gallery')
-                    ->variations(['tile' => [800, 450]])
+                    ->variations($this->galleryVariations)
                     ->required($this->requireGallery)
                     ->when($this->acceptPdf, fn (ImagesPicker $field) => $field->fileAttachmentsAcceptedFileTypes(['image/jpeg', 'application/pdf'])),
             ])
@@ -267,4 +270,17 @@ it('does not append an uploaded file that is not an image', function () use ($ga
     $livewire->assertSet('data.gallery.items', [])
         ->assertNotified('Upload failed')
         ->assertSet('componentFileAttachments.data.gallery', null);
+});
+
+it('creates no conversions without variations', function () use ($galleryPicker) {
+    [$first, $second] = Media::factory()->count(2)->create();
+
+    $livewire = Livewire::test(ImagesPickerFormHarness::class, ['galleryVariations' => []]);
+    $galleryPicker($livewire, 'selectImage', ['target' => 'append', 'mediaId' => $first->id]);
+    $galleryPicker($livewire, 'selectImage', ['target' => 'append', 'mediaId' => $second->id]);
+    $livewire->call('save')->assertHasNoErrors();
+
+    expect($livewire->get('saved.gallery'))->toHaveCount(2)
+        ->and(MediaConversion::query()->count())->toBe(0);
+    Queue::assertNothingPushed();
 });
