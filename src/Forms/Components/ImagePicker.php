@@ -6,25 +6,25 @@ use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Concerns\HasFileAttachments;
 use Filament\Forms\Components\Field;
-use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\View\View;
-use Illuminate\Validation\ValidationException;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use MarvelousDigital\FilamentMediaManager\Actions\PersistImagePicker;
-use MarvelousDigital\FilamentMediaManager\Actions\UploadMedia;
 use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
-use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
+use MarvelousDigital\FilamentMediaManager\Forms\Components\Concerns\HandlesPickedImages;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateConversion;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
 use MarvelousDigital\FilamentMediaManager\Support\ImagePickerState;
 
+/**
+ * @phpstan-import-type State from ImagePickerState
+ */
 class ImagePicker extends Field
 {
+    use HandlesPickedImages;
     use HasFileAttachments;
 
     protected string $view = 'filament-media-manager::forms.components.image-picker';
@@ -43,7 +43,10 @@ class ImagePicker extends Field
         });
 
         $this->dehydrateStateUsing(static function (ImagePicker $component, mixed $state): ?int {
-            $id = app(PersistImagePicker::class)->execute($state, $component->getVariations());
+            // The state is browser-writable: only an id the server handed out (with a valid
+            // token) may be updated or deleted.
+            $verified = ImagePickerState::verified($state, $component->getVariations());
+            $id = app(PersistImagePicker::class)->execute($verified, $component->getVariations());
 
             // Filament does not refill forms after saving; write the persisted state back so a
             // later save updates this row instead of creating another.
@@ -57,6 +60,8 @@ class ImagePicker extends Field
                 return;
             }
 
+            $value = ImagePickerState::verified($value, $component->getVariations());
+
             if (blank($value['media_id'] ?? null)) {
                 if ($component->isRequired()) {
                     $fail(__('validation.required', ['attribute' => $component->getValidationAttribute()]));
@@ -67,7 +72,7 @@ class ImagePicker extends Field
 
             $mediaIds = array_unique(array_filter([
                 $value['media_id'],
-                ...array_column($value['variants'] ?? [], 'media_id'),
+                ...array_column($value['variants'], 'media_id'),
             ]));
 
             if (Media::query()->whereKey($mediaIds)->count() !== count($mediaIds)) {
@@ -88,9 +93,9 @@ class ImagePicker extends Field
             fn (): Action => Action::make('retryConversion')
                 ->action(function (array $arguments, Component $component): void {
                     $conversion = MediaConversion::find((int) ($arguments['conversion'] ?? 0));
-                    $valueId = (int) ($component->getState()['id'] ?? 0);
+                    $valueId = $component instanceof ImagePicker ? $component->getVerifiedValueId() : null;
 
-                    if (! $conversion || $valueId === 0 || $conversion->media_field_value_id !== $valueId) {
+                    if (! $conversion || $valueId === null || $conversion->media_field_value_id !== $valueId) {
                         return;
                     }
 
@@ -123,7 +128,7 @@ class ImagePicker extends Field
      */
     public function getVariations(): array
     {
-        return $this->variations !== [] ? $this->variations : ['default' => [1200, 1200]];
+        return $this->variations;
     }
 
     public function getDisk(): string
@@ -131,47 +136,61 @@ class ImagePicker extends Field
         return $this->pickerDisk ?? config('filament-media-manager.disk');
     }
 
+    /**
+     * Server code that sets a stored value (e.g. `$set('hero', 5)`) gets it hydrated, with its
+     * token, right away. Browser updates never pass through here.
+     */
+    public function state(mixed $state): static
+    {
+        $state = $this->evaluate($state);
+
+        return parent::state(is_array($state) ? $state : ImagePickerState::fromStoredValue($state, $this->getVariations()));
+    }
+
+    /**
+     * The state to render, written back into the form so the browser edits the same shape the
+     * server saves. A value the browser replaced with a plain id becomes a new copy.
+     *
+     * @return State|null
+     */
+    public function getVerifiedState(): ?array
+    {
+        $state = $this->getState();
+        $verified = ImagePickerState::verified($state, $this->getVariations());
+
+        if ($verified !== $state) {
+            $this->state($verified);
+        }
+
+        return $verified;
+    }
+
+    /**
+     * The saved row this field may act on: the state's id, only when its token verifies.
+     */
+    public function getVerifiedValueId(): ?int
+    {
+        return ImagePickerState::verified($this->getState(), $this->getVariations())['id'] ?? null;
+    }
+
     #[ExposedLivewireMethod]
     public function selectImage(string $target, int $mediaId): void
     {
-        $media = Media::query()->whereKey($mediaId)->where('type', MediaType::Image)->first();
+        $media = $this->imageOrNotify($mediaId);
 
-        if (! $media) {
-            Notification::make()->title(__('This image is no longer in the library.'))->danger()->send();
-
-            return;
+        if ($media) {
+            $this->applyMedia($target, $media);
         }
-
-        $this->applyMedia($target, $media);
     }
 
     #[ExposedLivewireMethod]
     public function storeUploadedImage(string $target): void
     {
-        $file = $this->getUploadedFileAttachment();
+        $media = $this->uploadedMediaOrNotify();
 
-        try {
-            if (! $file instanceof TemporaryUploadedFile) {
-                Notification::make()->title(__('Upload failed'))->body(__('The file could not be uploaded. Please try again.'))->danger()->send();
-
-                return;
-            }
-
-            $media = app(UploadMedia::class)->execute($file);
-        } catch (ValidationException $exception) {
-            Notification::make()
-                ->title(__('Upload failed'))
-                ->body(implode(' ', collect($exception->errors())->flatten()->all()))
-                ->danger()
-                ->send();
-
-            return;
-        } finally {
-            $livewire = $this->getLivewire();
-            data_set($livewire, "componentFileAttachments.{$this->getStatePath()}", null);
+        if ($media) {
+            $this->applyMedia($target, $media);
         }
-
-        $this->applyMedia($target, $media);
     }
 
     #[ExposedLivewireMethod]
@@ -203,7 +222,7 @@ class ImagePicker extends Field
 
     public function getSavedValue(): ?MediaFieldValue
     {
-        $id = $this->getState()['id'] ?? null;
+        $id = $this->getVerifiedValueId();
 
         return $id ? MediaFieldValue::query()->with('conversions')->find($id) : null;
     }

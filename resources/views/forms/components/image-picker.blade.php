@@ -4,9 +4,9 @@
 
     $statePath = $getStatePath();
     $key = $getKey();
-    $state = $getState();
+    $state = $field->getVerifiedState();
     $variations = $getVariations();
-    $hasImage = is_array($state) && filled($state['media_id'] ?? null);
+    $hasImage = filled($state['media_id'] ?? null);
     $media = $field->getMediaPayload();
     $saved = $field->getSavedValue();
     $isGenerating = $saved?->conversions->contains(fn ($conversion): bool => $conversion->status === ConversionStatus::Pending) ?? false;
@@ -17,19 +17,22 @@
         class="fmm-image-picker"
         wire:key="fmm-picker-{{ $statePath }}"
         @if ($isGenerating) wire:poll.3s @endif
+        {{-- Alpine removes .window listeners with the element, so a rebuilt field never listens twice. --}}
+        x-on:image-picker:selected.window="selected($event.detail)"
+        x-on:image-picker:close.window="closed($event.detail)"
         x-data="{
             state: $wire.{{ $applyStateBindingModifiers("\$entangle('{$statePath}')") }},
             media: @js($media),
             targets: @js($variations),
             open: null,
             uploading: false,
-            init() {
-                window.addEventListener('image-picker:selected', (e) => {
-                    if (e.detail?.statePath !== @js($statePath)) return;
-                    this.call('selectImage', { target: e.detail.target, mediaId: e.detail.mediaId });
-                    $wire.unmountAction();
-                });
-                window.addEventListener('image-picker:close', () => $wire.unmountAction());
+            selected(detail) {
+                if (detail?.statePath !== @js($statePath)) return;
+                this.call('selectImage', { target: detail.target, mediaId: detail.mediaId });
+            },
+            closed(detail) {
+                if (detail?.statePath !== @js($statePath)) return;
+                $wire.unmountAction();
             },
             call(method, args = {}) {
                 return $wire.callSchemaComponentMethod(@js($key), method, args);

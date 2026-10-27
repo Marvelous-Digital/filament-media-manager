@@ -63,6 +63,28 @@ class MediaFieldValue extends Model
         return $this->source->url();
     }
 
+    public function urlFor(?string $variation = null): ?string
+    {
+        if ($variation !== null) {
+            $url = $this->conversion($variation)?->url();
+
+            if ($url !== null) {
+                return $url;
+            }
+        }
+
+        return $this->url();
+    }
+
+    public function altFor(?string $variation = null): ?string
+    {
+        if ($variation !== null && ($conversion = $this->conversion($variation)) !== null) {
+            return $conversion->effectiveAltText();
+        }
+
+        return $this->alt_text;
+    }
+
     public function directory(): string
     {
         return trim(config('filament-media-manager.directory'), '/') . '/conversions/' . $this->id;

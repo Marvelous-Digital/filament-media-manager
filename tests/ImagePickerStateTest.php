@@ -3,6 +3,7 @@
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
+use MarvelousDigital\FilamentMediaManager\Support\FieldValueToken;
 use MarvelousDigital\FilamentMediaManager\Support\ImagePickerState;
 
 $variations = ['desktop' => [1500, 900], 'mobile' => [480, 640]];
@@ -93,5 +94,42 @@ it('removes an unsaved image entirely and marks a saved one for deletion', funct
     expect(ImagePickerState::withoutImage(null))->toBeNull()
         ->and(ImagePickerState::withoutImage(['id' => null, 'media_id' => 3]))->toBeNull()
         ->and(ImagePickerState::withoutImage(['id' => 5, 'media_id' => 3]))
-        ->toBe(['id' => 5, 'media_id' => null, 'alt' => null, 'dirty' => true, 'variants' => []]);
+        ->toBe(['id' => 5, 'token' => null, 'media_id' => null, 'alt' => null, 'dirty' => true, 'variants' => []])
+        ->and(ImagePickerState::withoutImage(['id' => 5, 'token' => 'abc', 'media_id' => 3])['token'])->toBe('abc');
+});
+
+it('hydrates a saved value with a token for its id', function () use ($variations) {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+
+    $state = ImagePickerState::fromStoredValue($value->id, $variations);
+
+    expect($state['token'])->toBe(FieldValueToken::for($value->id))
+        ->and(ImagePickerState::withMainImage($state, Media::factory()->create(), $variations)['token'])->toBe($state['token']);
+});
+
+it('verified keeps a tokened id and drops a forged one', function () use ($variations) {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    $state = ImagePickerState::fromStoredValue($value->id, $variations);
+
+    expect(ImagePickerState::verified($state, $variations)['id'])->toBe($value->id)
+        ->and(ImagePickerState::verified([...$state, 'token' => 'forged'], $variations))->toMatchArray(['id' => null, 'token' => null, 'media_id' => $value->media_id])
+        ->and(ImagePickerState::verified([...$state, 'id' => $value->id + 1], $variations)['id'])->toBeNull();
+});
+
+it('verified turns a removal without a valid token into nothing', function () use ($variations) {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    $removal = ImagePickerState::withoutImage(ImagePickerState::fromStoredValue($value->id, $variations));
+
+    expect(ImagePickerState::verified($removal, $variations))->toMatchArray(['id' => $value->id, 'media_id' => null])
+        ->and(ImagePickerState::verified(['id' => $value->id, 'media_id' => null], $variations))->toBeNull();
+});
+
+it('verified treats a plain id as an untrusted copy and coerces malformed values', function () use ($variations) {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create(['alt_text' => 'Theirs']);
+
+    expect(ImagePickerState::verified($value->id, $variations))->toMatchArray(['id' => null, 'token' => null, 'media_id' => $value->media_id, 'alt' => 'Theirs', 'dirty' => true])
+        ->and(ImagePickerState::verified(['media_id' => ['x'], 'variants' => 'nope'], $variations))->toBeNull()
+        ->and(ImagePickerState::verified(['media_id' => 3, 'alt' => ['x'], 'variants' => ['mobile' => 'nope', 'desktop' => ['zoom' => 'x']]], $variations))
+        ->toMatchArray(['media_id' => 3, 'alt' => null])
+        ->and(ImagePickerState::verified(['media_id' => 3, 'variants' => ['mobile' => 'nope']], $variations)['variants']['mobile'])->toBe(ImagePickerState::defaultVariant());
 });

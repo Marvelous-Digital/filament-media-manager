@@ -21,7 +21,20 @@ it('dispatches the selection with its target and persists nothing', function () 
     Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.hero', 'target' => 'mobile'])
         ->call('select', $media->id)
         ->assertDispatched('image-picker:selected', statePath: 'data.hero', target: 'mobile', mediaId: $media->id)
-        ->assertDispatched('image-picker:close');
+        ->assertDispatched('image-picker:close', statePath: 'data.hero');
 
     expect(MediaFieldValue::query()->count())->toBe(0);
+});
+
+it('keeps the browser open when appending', function () {
+    $media = Media::factory()->create(['type' => MediaType::Image]);
+
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.gallery', 'target' => 'append'])
+        ->call('select', $media->id)
+        ->assertDispatched('image-picker:selected', statePath: 'data.gallery', target: 'append', mediaId: $media->id)
+        ->assertNotDispatched('image-picker:close');
+
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.hero', 'target' => 'main'])
+        ->call('select', $media->id)
+        ->assertDispatched('image-picker:close');
 });

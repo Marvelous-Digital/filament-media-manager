@@ -18,8 +18,6 @@ it('exposes configured variations', function () {
     expect($field->getVariations())->toBe(['hero' => [1600, 600]]);
 });
 
-it('falls back to a single default variation', function () {
-    $field = ImagePicker::make('hero_image_id');
-
-    expect($field->getVariations())->toBe(['default' => [1200, 1200]]);
+it('has no variations unless configured', function () {
+    expect(ImagePicker::make('hero')->getVariations())->toBe([]);
 });
