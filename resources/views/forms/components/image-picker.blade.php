@@ -4,9 +4,9 @@
 
     $statePath = $getStatePath();
     $key = $getKey();
-    $state = $getState();
+    $state = $field->getVerifiedState();
     $variations = $getVariations();
-    $hasImage = is_array($state) && filled($state['media_id'] ?? null);
+    $hasImage = filled($state['media_id'] ?? null);
     $media = $field->getMediaPayload();
     $saved = $field->getSavedValue();
     $isGenerating = $saved?->conversions->contains(fn ($conversion): bool => $conversion->status === ConversionStatus::Pending) ?? false;

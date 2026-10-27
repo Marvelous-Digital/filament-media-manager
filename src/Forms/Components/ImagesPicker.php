@@ -41,7 +41,9 @@ class ImagesPicker extends Field
         });
 
         $this->dehydrateStateUsing(static function (ImagesPicker $component, mixed $state): array {
-            $ids = app(PersistImagesPicker::class)->execute($state, $component->getVariations());
+            // The state is browser-writable: only ids the server handed out (with a valid token)
+            // may be updated or deleted.
+            $ids = app(PersistImagesPicker::class)->execute(ImagesPickerState::verified($state), $component->getVariations());
 
             // Filament does not refill forms after saving; write the persisted state back so a
             // later save updates these rows instead of creating more.
@@ -55,7 +57,9 @@ class ImagesPicker extends Field
                 return;
             }
 
-            if ($value['items'] === []) {
+            $items = ImagesPickerState::verified($value)['items'];
+
+            if ($items === []) {
                 if ($component->isRequired()) {
                     $fail(__('validation.required', ['attribute' => $component->getValidationAttribute()]));
                 }
@@ -63,7 +67,7 @@ class ImagesPicker extends Field
                 return;
             }
 
-            $mediaIds = array_unique(array_filter(array_column($value['items'], 'media_id')));
+            $mediaIds = array_unique(array_column($items, 'media_id'));
 
             if (Media::query()->whereKey($mediaIds)->count() !== count($mediaIds)) {
                 $fail(__('This image is no longer in the library.'));
@@ -111,6 +115,24 @@ class ImagesPicker extends Field
     public function getDisk(): string
     {
         return $this->pickerDisk ?? config('filament-media-manager.disk');
+    }
+
+    /**
+     * The state to render, written back into the form so the browser edits the same shape the
+     * server saves. A value the browser replaced with a plain id list becomes new copies.
+     *
+     * @return State
+     */
+    public function getVerifiedState(): array
+    {
+        $state = $this->getState();
+        $verified = ImagesPickerState::verified($state);
+
+        if ($verified !== $state) {
+            $this->state($verified);
+        }
+
+        return $verified;
     }
 
     #[ExposedLivewireMethod]
@@ -178,7 +200,7 @@ class ImagesPicker extends Field
      */
     protected function getPickerState(): array
     {
-        return ImagesPickerState::fromStoredValue($this->getState());
+        return ImagesPickerState::verified($this->getState());
     }
 
     protected function appendMedia(Media $media): void

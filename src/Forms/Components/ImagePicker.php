@@ -19,6 +19,9 @@ use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
 use MarvelousDigital\FilamentMediaManager\Support\ImagePickerState;
 
+/**
+ * @phpstan-import-type State from ImagePickerState
+ */
 class ImagePicker extends Field
 {
     use HandlesPickedImages;
@@ -40,7 +43,10 @@ class ImagePicker extends Field
         });
 
         $this->dehydrateStateUsing(static function (ImagePicker $component, mixed $state): ?int {
-            $id = app(PersistImagePicker::class)->execute($state, $component->getVariations());
+            // The state is browser-writable: only an id the server handed out (with a valid
+            // token) may be updated or deleted.
+            $verified = ImagePickerState::verified($state, $component->getVariations());
+            $id = app(PersistImagePicker::class)->execute($verified, $component->getVariations());
 
             // Filament does not refill forms after saving; write the persisted state back so a
             // later save updates this row instead of creating another.
@@ -54,6 +60,8 @@ class ImagePicker extends Field
                 return;
             }
 
+            $value = ImagePickerState::verified($value, $component->getVariations());
+
             if (blank($value['media_id'] ?? null)) {
                 if ($component->isRequired()) {
                     $fail(__('validation.required', ['attribute' => $component->getValidationAttribute()]));
@@ -64,7 +72,7 @@ class ImagePicker extends Field
 
             $mediaIds = array_unique(array_filter([
                 $value['media_id'],
-                ...array_column($value['variants'] ?? [], 'media_id'),
+                ...array_column($value['variants'], 'media_id'),
             ]));
 
             if (Media::query()->whereKey($mediaIds)->count() !== count($mediaIds)) {
@@ -85,9 +93,9 @@ class ImagePicker extends Field
             fn (): Action => Action::make('retryConversion')
                 ->action(function (array $arguments, Component $component): void {
                     $conversion = MediaConversion::find((int) ($arguments['conversion'] ?? 0));
-                    $valueId = (int) ($component->getState()['id'] ?? 0);
+                    $valueId = $component instanceof ImagePicker ? $component->getVerifiedValueId() : null;
 
-                    if (! $conversion || $valueId === 0 || $conversion->media_field_value_id !== $valueId) {
+                    if (! $conversion || $valueId === null || $conversion->media_field_value_id !== $valueId) {
                         return;
                     }
 
@@ -126,6 +134,32 @@ class ImagePicker extends Field
     public function getDisk(): string
     {
         return $this->pickerDisk ?? config('filament-media-manager.disk');
+    }
+
+    /**
+     * The state to render, written back into the form so the browser edits the same shape the
+     * server saves. A value the browser replaced with a plain id becomes a new copy.
+     *
+     * @return State|null
+     */
+    public function getVerifiedState(): ?array
+    {
+        $state = $this->getState();
+        $verified = ImagePickerState::verified($state, $this->getVariations());
+
+        if ($verified !== $state) {
+            $this->state($verified);
+        }
+
+        return $verified;
+    }
+
+    /**
+     * The saved row this field may act on: the state's id, only when its token verifies.
+     */
+    public function getVerifiedValueId(): ?int
+    {
+        return ImagePickerState::verified($this->getState(), $this->getVariations())['id'] ?? null;
     }
 
     #[ExposedLivewireMethod]
@@ -177,7 +211,7 @@ class ImagePicker extends Field
 
     public function getSavedValue(): ?MediaFieldValue
     {
-        $id = $this->getState()['id'] ?? null;
+        $id = $this->getVerifiedValueId();
 
         return $id ? MediaFieldValue::query()->with('conversions')->find($id) : null;
     }

@@ -290,3 +290,88 @@ it('re-dispatches generation via retryConversion for its own conversion only', f
         ->and($foreign->refresh()->status)->toBe(ConversionStatus::Failed);
     Queue::assertPushed(GenerateConversion::class, 1);
 });
+
+function foreignHeroValue(): MediaFieldValue
+{
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create(['alt_text' => 'Not yours']);
+    MediaConversion::factory()->for($value, 'value')->create(['variation' => 'hero', 'status' => ConversionStatus::Failed]);
+
+    return $value;
+}
+
+it('saves an image whose id the browser rewrote as a new row', function () {
+    $foreign = foreignHeroValue();
+    $media = Media::factory()->create();
+
+    $livewire = Livewire::test(ImagePickerFormHarness::class);
+    callPicker($livewire, 'selectImage', ['target' => 'main', 'mediaId' => $media->id]);
+    $livewire->set('data.hero.id', $foreign->id)
+        ->set('data.hero.alt', 'Hijacked')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $saved = $livewire->get('saved.hero');
+    $foreign->refresh();
+
+    expect($saved)->not->toBe($foreign->id)
+        ->and(MediaFieldValue::find($saved)->alt_text)->toBe('Hijacked')
+        ->and($foreign->media_id)->not->toBe($media->id)
+        ->and($foreign->alt_text)->toBe('Not yours')
+        ->and($foreign->conversions()->pluck('variation')->all())->toBe(['hero']);
+});
+
+it('ignores a removal of an id the browser made up', function () {
+    $foreign = foreignHeroValue();
+
+    Livewire::test(ImagePickerFormHarness::class)
+        ->set('data.hero', ['id' => $foreign->id, 'token' => 'forged', 'media_id' => null, 'dirty' => true, 'variants' => []])
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertSet('saved.hero', null);
+
+    expect(MediaFieldValue::query()->find($foreign->id))->not->toBeNull()
+        ->and(MediaConversion::query()->where('media_field_value_id', $foreign->id)->count())->toBe(1);
+});
+
+it('saves an id the browser set as a plain value as a new row', function () {
+    $foreign = foreignHeroValue();
+
+    $livewire = Livewire::test(ImagePickerFormHarness::class)
+        ->set('data.hero', $foreign->id)
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $saved = $livewire->get('saved.hero');
+
+    expect($saved)->not->toBe($foreign->id)
+        ->and(MediaFieldValue::find($saved)->media_id)->toBe($foreign->media_id)
+        ->and($foreign->conversions()->pluck('variation')->all())->toBe(['hero']);
+});
+
+it('coerces malformed state instead of failing', function () {
+    $media = Media::factory()->create();
+
+    $livewire = Livewire::test(ImagePickerFormHarness::class);
+    callPicker($livewire, 'selectImage', ['target' => 'main', 'mediaId' => $media->id]);
+    $livewire->set('data.hero.variants', 'junk')
+        ->set('data.hero.alt', ['x'])
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $value = MediaFieldValue::with('conversions')->find($livewire->get('saved.hero'));
+
+    expect($value->media_id)->toBe($media->id)
+        ->and($value->conversions->pluck('variation')->sort()->values()->all())->toBe(['desktop', 'mobile']);
+});
+
+it('does not retry a conversion of a row the browser pointed it at', function () {
+    $foreign = foreignHeroValue();
+    $conversion = $foreign->conversions()->sole();
+
+    $livewire = Livewire::test(ImagePickerFormHarness::class)
+        ->set('data.hero', ['id' => $foreign->id, 'media_id' => $foreign->media_id, 'variants' => []]);
+    $livewire->callAction(TestAction::make('retryConversion')->schemaComponent(heroRelativeKey($livewire)), arguments: ['conversion' => $conversion->id]);
+
+    expect($conversion->refresh()->status)->toBe(ConversionStatus::Failed);
+    Queue::assertNothingPushed();
+});

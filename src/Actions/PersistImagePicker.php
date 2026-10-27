@@ -18,6 +18,11 @@ class PersistImagePicker
      * Write the ImagePicker's form state to the database and return the id to store on the
      * parent. Scalar state (never hydrated) passes through untouched.
      *
+     * This is an internal action that trusts its caller: the row `id` names is rewritten, or
+     * deleted with its conversions and files when `media_id` is empty, whoever owns it. Never
+     * pass it state the browser could have written without running ImagePickerState::verified()
+     * first, as the ImagePicker field does on save.
+     *
      * @param  array<string, array{0: int, 1: int}>  $variations
      */
     public function execute(mixed $state, array $variations): ?int

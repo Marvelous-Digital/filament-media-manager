@@ -1,9 +1,7 @@
 @php
-    use MarvelousDigital\FilamentMediaManager\Support\ImagesPickerState;
-
     $statePath = $getStatePath();
     $key = $getKey();
-    $items = ImagesPickerState::fromStoredValue($getState())['items'];
+    $items = $field->getVerifiedState()['items'];
     $thumbnails = $field->getThumbnails();
 @endphp
 

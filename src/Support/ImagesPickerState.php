@@ -9,8 +9,12 @@ use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
 /**
  * Pure transitions for the ImagesPicker's in-form state. Nothing here writes to the database.
  *
- * @phpstan-type Item array{key: string, id: int|null, media_id: int, alt: string|null}
- * @phpstan-type State array{items: list<Item>, removed: list<int>}
+ * A saved item carries a FieldValueToken next to its id, and so does every entry in `removed`;
+ * verified() drops whatever the browser could have forged before the state is persisted.
+ *
+ * @phpstan-type Item array{key: string, id: int|null, token: string|null, media_id: int, alt: string|null}
+ * @phpstan-type Removal array{id: int, token: string|null}
+ * @phpstan-type State array{items: list<Item>, removed: list<Removal>}
  */
 class ImagesPickerState
 {
@@ -39,7 +43,13 @@ class ImagesPickerState
                 continue;
             }
 
-            $items[] = ['key' => "v{$value->id}", 'id' => $value->id, 'media_id' => $value->media_id, 'alt' => $value->alt_text];
+            $items[] = [
+                'key' => "v{$value->id}",
+                'id' => $value->id,
+                'token' => FieldValueToken::for($value->id),
+                'media_id' => $value->media_id,
+                'alt' => $value->alt_text,
+            ];
         }
 
         return ['items' => $items, 'removed' => []];
@@ -51,13 +61,13 @@ class ImagesPickerState
      */
     public static function withImage(array $state, Media $media): array
     {
-        $state['items'][] = ['key' => (string) Str::uuid(), 'id' => null, 'media_id' => $media->id, 'alt' => $media->alt_text];
+        $state['items'][] = ['key' => (string) Str::uuid(), 'id' => null, 'token' => null, 'media_id' => $media->id, 'alt' => $media->alt_text];
 
         return $state;
     }
 
     /**
-     * A saved image keeps its id in `removed` so the row can be deleted on save.
+     * A saved image keeps its id and token in `removed` so the row can be deleted on save.
      *
      * @param  State  $state
      * @return State
@@ -70,7 +80,7 @@ class ImagesPickerState
             if ($item['key'] !== $key) {
                 $items[] = $item;
             } elseif ($item['id'] !== null) {
-                $state['removed'][] = $item['id'];
+                $state['removed'][] = ['id' => $item['id'], 'token' => $item['token'] ?? null];
             }
         }
 
@@ -104,6 +114,81 @@ class ImagesPickerState
         $state['items'] = [...$items, ...array_values($byKey)];
 
         return $state;
+    }
+
+    /**
+     * The state as it may be persisted: an item whose token does not verify loses its id (it is
+     * saved as a new row), a `removed` entry whose token does not verify is dropped, and malformed
+     * items are skipped. A value that is not hydrated state did not come from the server (server
+     * code hydrates through the field), so its rows are shown as new copies rather than trusted.
+     *
+     * @return State
+     */
+    public static function verified(mixed $state): array
+    {
+        if (! is_array($state) || ! array_key_exists('items', $state)) {
+            $copies = self::fromStoredValue($state);
+
+            foreach ($copies['items'] as $index => $item) {
+                $copies['items'][$index] = [...$item, 'id' => null, 'token' => null];
+            }
+
+            return $copies;
+        }
+
+        $items = [];
+        $keptIds = [];
+
+        foreach (is_array($state['items']) ? $state['items'] : [] as $item) {
+            if (! is_array($item) || ! self::isId($item['media_id'] ?? null)) {
+                continue;
+            }
+
+            $id = self::isId($item['id'] ?? null) ? (int) $item['id'] : null;
+            $token = $item['token'] ?? null;
+
+            if ($id === null || isset($keptIds[$id]) || ! FieldValueToken::verifies($id, $token)) {
+                $id = null;
+                $token = null;
+            }
+
+            if ($id !== null) {
+                $keptIds[$id] = true;
+            }
+
+            $key = $item['key'] ?? null;
+            $alt = $item['alt'] ?? null;
+
+            $items[] = [
+                'key' => is_string($key) && $key !== '' ? $key : (string) Str::uuid(),
+                'id' => $id,
+                'token' => $token,
+                'media_id' => (int) $item['media_id'],
+                'alt' => is_scalar($alt) ? (string) $alt : null,
+            ];
+        }
+
+        $removed = [];
+
+        foreach (is_array($state['removed'] ?? null) ? $state['removed'] : [] as $entry) {
+            if (! is_array($entry) || ! self::isId($entry['id'] ?? null)) {
+                continue;
+            }
+
+            $id = (int) $entry['id'];
+
+            if (! isset($keptIds[$id]) && FieldValueToken::verifies($id, $entry['token'] ?? null)) {
+                $keptIds[$id] = true;
+                $removed[] = ['id' => $id, 'token' => $entry['token']];
+            }
+        }
+
+        return ['items' => $items, 'removed' => $removed];
+    }
+
+    private static function isId(mixed $value): bool
+    {
+        return (is_int($value) || (is_string($value) && ctype_digit($value))) && (int) $value > 0;
     }
 
     /**

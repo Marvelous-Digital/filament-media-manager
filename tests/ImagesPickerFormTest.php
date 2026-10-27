@@ -13,6 +13,7 @@ use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use MarvelousDigital\FilamentMediaManager\Forms\Components\ImagesPicker;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
+use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
 
 class ImagesPickerFormHarness extends Component implements HasActions, HasForms
@@ -165,4 +166,76 @@ it('saves alt text per image', function () use ($galleryPicker) {
     $ids = $livewire->get('saved.gallery');
     expect(MediaFieldValue::find($ids[0])->alt_text)->toBe('First')
         ->and(MediaFieldValue::find($ids[1])->alt_text)->toBe('Second');
+});
+
+$foreignGalleryValue = fn (): MediaFieldValue => tap(
+    MediaFieldValue::factory()->for(Media::factory(), 'source')->create(['alt_text' => 'Not yours']),
+    fn (MediaFieldValue $value) => MediaConversion::factory()->for($value, 'value')->create(['variation' => 'hero']),
+);
+
+it('ignores a removed id the browser made up', function () use ($foreignGalleryValue) {
+    $foreign = $foreignGalleryValue();
+    $own = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+
+    Livewire::test(ImagesPickerFormHarness::class, ['preset' => [$own->id]])
+        ->set('data.gallery.removed', [['id' => $foreign->id, 'token' => 'forged'], ['id' => $foreign->id], $foreign->id])
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertSet('saved.gallery', [$own->id]);
+
+    expect(MediaFieldValue::query()->find($foreign->id))->not->toBeNull()
+        ->and(MediaConversion::query()->where('media_field_value_id', $foreign->id)->count())->toBe(1);
+});
+
+it('saves an item whose id the browser rewrote as a new row', function () use ($foreignGalleryValue) {
+    $foreign = $foreignGalleryValue();
+    $own = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+
+    $livewire = Livewire::test(ImagesPickerFormHarness::class, ['preset' => [$own->id]])
+        ->set('data.gallery.items.0.id', $foreign->id)
+        ->set('data.gallery.items.0.alt', 'Hijacked')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $saved = $livewire->get('saved.gallery');
+    $foreign->refresh();
+
+    expect($saved)->toHaveCount(1)
+        ->and($saved[0])->not->toBe($foreign->id)
+        ->and(MediaFieldValue::find($saved[0])->alt_text)->toBe('Hijacked')
+        ->and($foreign->alt_text)->toBe('Not yours')
+        ->and($foreign->conversions()->pluck('variation')->all())->toBe(['hero']);
+});
+
+it('saves ids the browser set as a plain list as new rows', function () use ($foreignGalleryValue) {
+    $foreign = $foreignGalleryValue();
+
+    $livewire = Livewire::test(ImagesPickerFormHarness::class)
+        ->set('data.gallery', [$foreign->id])
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $saved = $livewire->get('saved.gallery');
+
+    expect($saved)->toHaveCount(1)
+        ->and($saved[0])->not->toBe($foreign->id)
+        ->and(MediaFieldValue::find($saved[0])->media_id)->toBe($foreign->media_id)
+        ->and($foreign->conversions()->pluck('variation')->all())->toBe(['hero']);
+});
+
+it('skips malformed items instead of failing', function () use ($galleryPicker) {
+    $media = Media::factory()->create();
+
+    $livewire = Livewire::test(ImagesPickerFormHarness::class);
+    $galleryPicker($livewire, 'selectImage', ['target' => 'append', 'mediaId' => $media->id]);
+    $livewire->set('data.gallery.items.1', 'junk')
+        ->set('data.gallery.items.2', ['id' => 'x', 'media_id' => ['x']])
+        ->assertOk()
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $saved = $livewire->get('saved.gallery');
+
+    expect($saved)->toHaveCount(1)
+        ->and(MediaFieldValue::find($saved[0])->media_id)->toBe($media->id);
 });
