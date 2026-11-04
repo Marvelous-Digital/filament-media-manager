@@ -2,6 +2,7 @@
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
 use MarvelousDigital\FilamentMediaManager\Livewire\MediaPickerBrowser;
@@ -77,3 +78,13 @@ it('refuses to select a non-image when only images are allowed', function () {
         ->call('select', $pdf->id)
         ->assertNotDispatched('image-picker:selected');
 });
+
+it('refuses to widen the mime types from the client', function () {
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.file', 'target' => 'main', 'mimeTypes' => ['application/pdf']])
+        ->set('mimeTypes', ['application/pdf', 'application/x-msdownload']);
+})->throws(CannotUpdateLockedPropertyException::class);
+
+it('refuses to switch an image browser to other mime types from the client', function () {
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.image', 'target' => 'main'])
+        ->set('mimeTypes', ['application/pdf']);
+})->throws(CannotUpdateLockedPropertyException::class);
