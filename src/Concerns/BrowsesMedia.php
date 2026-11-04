@@ -135,14 +135,12 @@ trait BrowsesMedia
             ->send();
     }
 
-    protected function mediaQuery(): Builder
+    /**
+     * Limits a media query to what this browser may show (and so, hand out): its mime types,
+     * or images only.
+     */
+    protected function restrictToBrowsable(Builder $query): Builder
     {
-        $query = Media::query();
-
-        $this->folderId === null
-            ? $query->whereNull('folder_id')
-            : $query->where('folder_id', $this->folderId);
-
         $allowed = $this->allowedMimeTypes();
 
         if ($allowed !== null) {
@@ -151,7 +149,18 @@ trait BrowsesMedia
             $query->where('type', MediaType::Image->value);
         }
 
-        return $query
+        return $query;
+    }
+
+    protected function mediaQuery(): Builder
+    {
+        $query = Media::query();
+
+        $this->folderId === null
+            ? $query->whereNull('folder_id')
+            : $query->where('folder_id', $this->folderId);
+
+        return $this->restrictToBrowsable($query)
             ->when($this->search !== '', function (Builder $query) {
                 $query->where(function (Builder $query) {
                     $query->where('name', 'like', "%{$this->search}%")

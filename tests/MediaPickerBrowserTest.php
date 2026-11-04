@@ -61,3 +61,19 @@ it('refuses an upload outside the mime types', function () {
 
     expect(Media::query()->count())->toBe(0);
 });
+
+it('refuses to select a media outside the mime types', function () {
+    $image = Media::factory()->create();
+
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.file', 'target' => 'main', 'mimeTypes' => ['application/pdf']])
+        ->call('select', $image->id)
+        ->assertNotDispatched('image-picker:selected');
+});
+
+it('refuses to select a non-image when only images are allowed', function () {
+    $pdf = Media::factory()->create(['type' => MediaType::Document, 'mime_type' => 'application/pdf']);
+
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.hero', 'target' => 'main'])
+        ->call('select', $pdf->id)
+        ->assertNotDispatched('image-picker:selected');
+});

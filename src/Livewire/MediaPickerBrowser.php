@@ -32,7 +32,7 @@ class MediaPickerBrowser extends Component
 
     public function select(int $mediaId): void
     {
-        if (! Media::query()->whereKey($mediaId)->exists()) {
+        if (! $this->restrictToBrowsable(Media::query()->whereKey($mediaId))->exists()) {
             return;
         }
 

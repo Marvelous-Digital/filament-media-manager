@@ -265,6 +265,19 @@ public function galleryImages(): Collection
 @endforeach
 ```
 
+## DocumentPicker field
+
+`DocumentPicker` picks one file of given mime types (e.g. a PDF) from the media library; the library browser also lets the user upload a new file of those types. It stores the `Media` id (an integer column) and writes nothing else: no alt text, crops or variations.
+
+```php
+use MarvelousDigital\FilamentMediaManager\Forms\Components\DocumentPicker;
+
+DocumentPicker::make('brochure_id')
+    ->mimeTypes(['application/pdf']);
+```
+
+The field shows the file name, format and size, with change and remove actions. On save it fails validation with "This file is no longer in the library." when the id no longer exists or its mime type is not in the list. Read the file back with `$field->getSelectedMedia()` in a form, or `Media::find($id)?->url()` elsewhere.
+
 ## Roadmap
 
 The following are intentionally out of scope for this first release and may be added later:

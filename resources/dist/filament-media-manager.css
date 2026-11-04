@@ -110,3 +110,10 @@
 .dark .fmm-images-missing { color: rgb(252 165 165); }
 .fmm-images-missing-icon { width: 1.5rem; height: 1.5rem; }
 .fmm-images-item.fi-sortable-ghost { opacity: 0.4; }
+
+.fmm-document-card { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgb(229 231 235); }
+.dark .fmm-document-card { border-color: rgb(63 63 70); }
+.fmm-document-icon { width: 2rem; height: 2rem; flex: none; color: rgb(107 114 128); }
+.fmm-document-meta { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.fmm-document-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fmm-document-info, .fmm-document-missing { font-size: 0.875rem; color: rgb(107 114 128); }
