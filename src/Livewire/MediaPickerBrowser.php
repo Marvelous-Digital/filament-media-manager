@@ -17,9 +17,17 @@ class MediaPickerBrowser extends Component
 
     public string $target = 'main';
 
+    /** @var array<int, string> Empty means images only. */
+    public array $mimeTypes = [];
+
     protected function imagesOnly(): bool
     {
-        return true;
+        return $this->mimeTypes === [];
+    }
+
+    protected function allowedMimeTypes(): ?array
+    {
+        return $this->mimeTypes === [] ? null : $this->mimeTypes;
     }
 
     public function select(int $mediaId): void
