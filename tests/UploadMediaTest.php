@@ -84,3 +84,43 @@ it('leaves dimensions empty for non-images', function () {
 
     expect($media->width)->toBeNull()->and($media->height)->toBeNull();
 });
+
+it('words the refusal of a disallowed type in the interface language', function (string $locale, string $message) {
+    app()->setLocale($locale);
+    config()->set('filament-media-manager.accepted_mime_types', ['image/jpeg']);
+
+    $file = UploadedFile::fake()->create('script.exe', 10, 'application/x-msdownload');
+
+    try {
+        app(UploadMedia::class)->execute($file);
+    } catch (ValidationException $exception) {
+        expect($exception->errors()['file'])->toBe([$message]);
+
+        return;
+    }
+
+    $this->fail('No ValidationException was thrown.');
+})->with([
+    'en' => ['en', 'The file type of "script.exe" is not allowed.'],
+    'fr' => ['fr', "Le type du fichier «\u{00A0}script.exe\u{00A0}» n’est pas autorisé."],
+]);
+
+it('words the refusal of an oversized file in the interface language', function (string $locale, string $message) {
+    app()->setLocale($locale);
+    config()->set('filament-media-manager.max_file_size', 1);
+
+    $file = UploadedFile::fake()->create('big.bin', 10, 'application/octet-stream');
+
+    try {
+        app(UploadMedia::class)->execute($file);
+    } catch (ValidationException $exception) {
+        expect($exception->errors()['file'])->toBe([$message]);
+
+        return;
+    }
+
+    $this->fail('No ValidationException was thrown.');
+})->with([
+    'en' => ['en', '"big.bin" exceeds the maximum size of 1 KB.'],
+    'fr' => ['fr', "Le fichier «\u{00A0}big.bin\u{00A0}» dépasse la taille maximale de 1\u{00A0}Ko."],
+]);

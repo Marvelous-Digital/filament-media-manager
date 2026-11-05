@@ -58,6 +58,11 @@ return [
         'image_added' => 'Image ajoutée',
     ],
 
+    'validation' => [
+        'type_not_allowed' => 'Le type du fichier « :name » n’est pas autorisé.',
+        'too_large' => 'Le fichier « :name » dépasse la taille maximale de :max Ko.',
+    ],
+
     'picker' => [
         'image_missing' => 'Cette image n’est plus dans la médiathèque.',
         'file_missing' => 'Ce fichier n’est plus dans la médiathèque.',

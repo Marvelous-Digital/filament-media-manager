@@ -59,7 +59,7 @@ class UploadMedia
 
         if (is_array($accepted) && ! in_array($file->getMimeType(), $accepted, true)) {
             throw ValidationException::withMessages([
-                'file' => "The file type of \"{$file->getClientOriginalName()}\" is not allowed.",
+                'file' => __('filament-media-manager::media.validation.type_not_allowed', ['name' => $file->getClientOriginalName()]),
             ]);
         }
 
@@ -67,7 +67,7 @@ class UploadMedia
 
         if ($maxKilobytes !== null && $file->getSize() > $maxKilobytes * 1024) {
             throw ValidationException::withMessages([
-                'file' => "\"{$file->getClientOriginalName()}\" exceeds the maximum size of {$maxKilobytes} KB.",
+                'file' => __('filament-media-manager::media.validation.too_large', ['name' => $file->getClientOriginalName(), 'max' => $maxKilobytes]),
             ]);
         }
     }

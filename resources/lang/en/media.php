@@ -58,6 +58,11 @@ return [
         'image_added' => 'Image added',
     ],
 
+    'validation' => [
+        'type_not_allowed' => 'The file type of ":name" is not allowed.',
+        'too_large' => '":name" exceeds the maximum size of :max KB.',
+    ],
+
     'picker' => [
         'image_missing' => 'This image is no longer in the library.',
         'file_missing' => 'This file is no longer in the library.',
