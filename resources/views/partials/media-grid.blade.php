@@ -8,9 +8,9 @@
             </button>
             @if ($mode === 'manage')
                 <div class="fmm-card-menu">
-                    <x-filament::icon-button icon="heroicon-o-pencil" color="gray" size="sm" label="Rename"
+                    <x-filament::icon-button icon="heroicon-o-pencil" color="gray" size="sm" label="{{ __('filament-media-manager::media.actions.rename') }}"
                         wire:click="mountAction('renameFolder', { folder: {{ $folder->id }} })" />
-                    <x-filament::icon-button icon="heroicon-o-trash" color="danger" size="sm" label="Delete"
+                    <x-filament::icon-button icon="heroicon-o-trash" color="danger" size="sm" label="{{ __('filament-media-manager::media.actions.delete') }}"
                         wire:click="mountAction('deleteFolder', { folder: {{ $folder->id }} })" />
                 </div>
             @endif
@@ -39,21 +39,21 @@
 
             @if ($mode === 'select')
                 <button type="button" class="fmm-card-overlay" wire:click="select({{ $media->id }})"
-                    aria-label="Select {{ $media->name }}"></button>
+                    aria-label="{{ __('filament-media-manager::media.library.select_media', ['name' => $media->name]) }}"></button>
             @else
                 <button type="button" class="fmm-card-overlay" wire:click="mountAction('editMedia', { media: {{ $media->id }} })"
-                    aria-label="Open details for {{ $media->name }}"></button>
+                    aria-label="{{ __('filament-media-manager::media.library.open_details', ['name' => $media->name]) }}"></button>
                 <label class="fmm-card-check" x-on:click.stop>
                     <input type="checkbox" value="{{ $media->id }}" wire:model.live="selected" class="fi-checkbox-input" />
                 </label>
                 <div class="fmm-card-menu">
-                    <x-filament::icon-button icon="heroicon-o-arrow-down-tray" color="gray" size="sm" label="Download"
+                    <x-filament::icon-button icon="heroicon-o-arrow-down-tray" color="gray" size="sm" label="{{ __('filament-media-manager::media.actions.download') }}"
                         wire:click="mountAction('downloadMedia', { media: {{ $media->id }} })" />
                     @if ($media->thumbnail_status === \MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus::Failed)
-                        <x-filament::icon-button icon="heroicon-o-arrow-path" color="warning" size="sm" label="Retry thumbnail"
+                        <x-filament::icon-button icon="heroicon-o-arrow-path" color="warning" size="sm" label="{{ __('filament-media-manager::media.actions.retry_thumbnail') }}"
                             wire:click="mountAction('retryThumbnail', { media: {{ $media->id }} })" />
                     @endif
-                    <x-filament::icon-button icon="heroicon-o-trash" color="danger" size="sm" label="Delete"
+                    <x-filament::icon-button icon="heroicon-o-trash" color="danger" size="sm" label="{{ __('filament-media-manager::media.actions.delete') }}"
                         wire:click="mountAction('deleteMedia', { media: {{ $media->id }} })" />
                 </div>
             @endif
@@ -64,12 +64,12 @@
 @if ($folders->isEmpty() && $mediaItems->isEmpty())
     <div class="fmm-empty">
         <x-filament::icon icon="heroicon-o-photo" class="fmm-empty-icon" />
-        <p>No media here yet. Upload files or create a folder to get started.</p>
+        <p>{{ __('filament-media-manager::media.library.empty') }}</p>
     </div>
 @endif
 
 @if ($hasMore)
     <div class="fmm-load-more">
-        <x-filament::button color="gray" wire:click="loadMore">Load more</x-filament::button>
+        <x-filament::button color="gray" wire:click="loadMore">{{ __('filament-media-manager::media.library.load_more') }}</x-filament::button>
     </div>
 @endif

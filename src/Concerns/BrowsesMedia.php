@@ -88,7 +88,7 @@ trait BrowsesMedia
                 $stored++;
             } catch (ValidationException $exception) {
                 Notification::make()
-                    ->title('Upload failed')
+                    ->title(__('filament-media-manager::media.notifications.upload_failed'))
                     ->body(implode(' ', collect($exception->errors())->flatten()->all()))
                     ->danger()
                     ->send();
@@ -98,12 +98,12 @@ trait BrowsesMedia
         $this->uploads = [];
 
         if ($refused) {
-            $this->addError('uploads', 'This file type is not allowed here.');
+            $this->addError('uploads', __('filament-media-manager::media.notifications.type_not_allowed'));
         }
 
         if ($stored > 0) {
             Notification::make()
-                ->title($stored === 1 ? '1 file uploaded' : "{$stored} files uploaded")
+                ->title(trans_choice('filament-media-manager::media.notifications.files_uploaded', $stored))
                 ->success()
                 ->send();
         }
@@ -120,8 +120,8 @@ trait BrowsesMedia
             : $maxKilobytes . ' KB';
 
         Notification::make()
-            ->title(count($fileNames) === 1 ? 'File too large' : 'Files too large')
-            ->body(implode(', ', $fileNames) . " — maximum upload size is {$limit}.")
+            ->title(trans_choice('filament-media-manager::media.notifications.too_large', count($fileNames)))
+            ->body(__('filament-media-manager::media.notifications.too_large_body', ['names' => implode(', ', $fileNames), 'limit' => $limit]))
             ->danger()
             ->send();
     }
@@ -129,8 +129,8 @@ trait BrowsesMedia
     public function reportUploadFailed(): void
     {
         Notification::make()
-            ->title('Upload failed')
-            ->body('The file could not be uploaded. Please try again.')
+            ->title(__('filament-media-manager::media.notifications.upload_failed'))
+            ->body(__('filament-media-manager::media.notifications.upload_failed_body'))
             ->danger()
             ->send();
     }

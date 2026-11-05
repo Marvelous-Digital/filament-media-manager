@@ -32,7 +32,7 @@ class MediaLibrary extends Page
 
     public static function getNavigationLabel(): string
     {
-        return 'Media';
+        return __('filament-media-manager::media.library.title');
     }
 
     public static function getNavigationIcon(): ?string
@@ -42,16 +42,16 @@ class MediaLibrary extends Page
 
     public function getTitle(): string
     {
-        return 'Media';
+        return __('filament-media-manager::media.library.title');
     }
 
     public function createFolderAction(): Action
     {
         return Action::make('createFolder')
-            ->label('New folder')
+            ->label(__('filament-media-manager::media.actions.new_folder'))
             ->icon('heroicon-o-folder-plus')
             ->color('gray')
-            ->modalHeading('New folder')
+            ->modalHeading(__('filament-media-manager::media.actions.new_folder'))
             ->schema([
                 TextInput::make('name')
                     ->required()
@@ -68,9 +68,9 @@ class MediaLibrary extends Page
     public function renameFolderAction(): Action
     {
         return Action::make('renameFolder')
-            ->label('Rename')
+            ->label(__('filament-media-manager::media.actions.rename'))
             ->icon('heroicon-o-pencil')
-            ->modalHeading('Rename folder')
+            ->modalHeading(__('filament-media-manager::media.actions.rename_folder'))
             ->fillForm(fn (array $arguments): array => [
                 'name' => MediaFolder::find((int) $arguments['folder'])?->name,
             ])
@@ -92,11 +92,11 @@ class MediaLibrary extends Page
     public function deleteFolderAction(): Action
     {
         return Action::make('deleteFolder')
-            ->label('Delete')
+            ->label(__('filament-media-manager::media.actions.delete'))
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->modalHeading('Delete folder')
+            ->modalHeading(__('filament-media-manager::media.actions.delete_folder'))
             ->action(function (array $arguments): void {
                 $folder = MediaFolder::find((int) $arguments['folder']);
 
@@ -106,8 +106,8 @@ class MediaLibrary extends Page
 
                 if (! $folder->isEmpty()) {
                     Notification::make()
-                        ->title('Folder is not empty')
-                        ->body('Move or delete its contents first.')
+                        ->title(__('filament-media-manager::media.notifications.folder_not_empty_title'))
+                        ->body(__('filament-media-manager::media.notifications.folder_not_empty_body'))
                         ->warning()
                         ->send();
 
@@ -121,9 +121,9 @@ class MediaLibrary extends Page
     public function editMediaAction(): Action
     {
         return Action::make('editMedia')
-            ->label('Details')
+            ->label(__('filament-media-manager::media.actions.details'))
             ->slideOver()
-            ->modalHeading(fn (array $arguments): string => Media::query()->whereKey((int) $arguments['media'])->value('name') ?? 'Media')
+            ->modalHeading(fn (array $arguments): string => Media::query()->whereKey((int) $arguments['media'])->value('name') ?? __('filament-media-manager::media.library.title'))
             ->fillForm(function (array $arguments): array {
                 $media = Media::find((int) $arguments['media']);
 
@@ -137,11 +137,11 @@ class MediaLibrary extends Page
                 View::make('filament-media-manager::media-details')
                     ->viewData(['media' => Media::find((int) $arguments['media'])]),
                 TextInput::make('name')->required()->maxLength(255),
-                Textarea::make('alt_text')->label('Alt text')->rows(3)->maxLength(255),
+                Textarea::make('alt_text')->label(__('filament-media-manager::media.fields.alt_text'))->rows(3)->maxLength(255),
                 Select::make('folder_id')
-                    ->label('Folder')
+                    ->label(__('filament-media-manager::media.fields.folder'))
                     ->options(MediaFolder::treeOptions())
-                    ->placeholder('Root')
+                    ->placeholder(__('filament-media-manager::media.fields.root'))
                     ->nullable(),
             ])
             ->action(function (array $arguments, array $data): void {
@@ -156,7 +156,7 @@ class MediaLibrary extends Page
     public function deleteMediaAction(): Action
     {
         return Action::make('deleteMedia')
-            ->label('Delete')
+            ->label(__('filament-media-manager::media.actions.delete'))
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->requiresConfirmation()
@@ -168,7 +168,7 @@ class MediaLibrary extends Page
     public function downloadMediaAction(): Action
     {
         return Action::make('downloadMedia')
-            ->label('Download')
+            ->label(__('filament-media-manager::media.actions.download'))
             ->icon('heroicon-o-arrow-down-tray')
             ->action(function (array $arguments) {
                 $media = Media::find((int) $arguments['media']);
@@ -184,7 +184,7 @@ class MediaLibrary extends Page
     public function retryThumbnailAction(): Action
     {
         return Action::make('retryThumbnail')
-            ->label('Retry thumbnail')
+            ->label(__('filament-media-manager::media.actions.retry_thumbnail'))
             ->icon('heroicon-o-arrow-path')
             ->action(function (array $arguments): void {
                 $media = Media::find((int) $arguments['media']);
@@ -201,11 +201,11 @@ class MediaLibrary extends Page
     public function bulkDeleteAction(): Action
     {
         return Action::make('bulkDelete')
-            ->label('Delete selected')
+            ->label(__('filament-media-manager::media.actions.delete_selected'))
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->modalHeading('Delete selected media')
+            ->modalHeading(__('filament-media-manager::media.actions.delete_selected_heading'))
             ->action(function (): void {
                 Media::query()->whereIn('id', $this->selected)->get()->each->delete();
                 $this->selected = [];
@@ -215,14 +215,14 @@ class MediaLibrary extends Page
     public function bulkMoveAction(): Action
     {
         return Action::make('bulkMove')
-            ->label('Move selected')
+            ->label(__('filament-media-manager::media.actions.move_selected'))
             ->icon('heroicon-o-folder-arrow-down')
             ->color('gray')
             ->schema([
                 Select::make('folder_id')
-                    ->label('Move to')
+                    ->label(__('filament-media-manager::media.actions.move_to'))
                     ->options(MediaFolder::treeOptions())
-                    ->placeholder('Root')
+                    ->placeholder(__('filament-media-manager::media.fields.root'))
                     ->nullable(),
             ])
             ->action(function (array $data): void {

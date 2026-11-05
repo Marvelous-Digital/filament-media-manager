@@ -62,14 +62,14 @@
                         wire:ignore.self
                         x-sortable-item="{{ $item['key'] }}"
                     >
-                        <div class="fmm-images-thumb" x-sortable-handle title="{{ __('Drag to reorder') }}">
+                        <div class="fmm-images-thumb" x-sortable-handle title="{{ __('filament-media-manager::media.picker.drag_to_reorder') }}">
                             @if (filled($thumbnails[$item['media_id']] ?? null))
                                 <img src="{{ $thumbnails[$item['media_id']] }}" alt="{{ $item['alt'] }}" draggable="false" />
                             @else
                                 {{-- Deleted from the library since it was picked; saving fails until it is removed. --}}
                                 <div class="fmm-images-missing">
                                     <x-filament::icon icon="heroicon-o-exclamation-triangle" class="fmm-images-missing-icon" />
-                                    <span>{{ __('Missing from the library') }}</span>
+                                    <span>{{ __('filament-media-manager::media.picker.missing_from_library') }}</span>
                                 </div>
                             @endif
                             <x-filament::icon-button
@@ -77,7 +77,7 @@
                                 icon="heroicon-o-trash"
                                 color="danger"
                                 size="sm"
-                                :label="__('Remove')"
+                                :label="__('filament-media-manager::media.picker.remove')"
                                 x-on:click.stop="call('removeImage', { key: @js($item['key']) })"
                             />
                         </div>
@@ -85,24 +85,24 @@
                             type="text"
                             class="fi-input fmm-alt-input"
                             x-model="item(@js($item['key'])).alt"
-                            placeholder="{{ __('Alt text') }}"
-                            aria-label="{{ __('Alt text') }}"
+                            placeholder="{{ __('filament-media-manager::media.picker.alt_text') }}"
+                            aria-label="{{ __('filament-media-manager::media.picker.alt_text') }}"
                         />
                     </li>
                 @endforeach
             </ul>
         @else
-            <p class="fmm-images-empty">{{ __('No images yet.') }}</p>
+            <p class="fmm-images-empty">{{ __('filament-media-manager::media.picker.no_images') }}</p>
         @endif
 
         <div class="fmm-picker-buttons">
             <x-filament::button icon="heroicon-o-photo" color="gray" x-on:click="pick()">
-                {{ __('Add images') }}
+                {{ __('filament-media-manager::media.picker.add_images') }}
             </x-filament::button>
             <x-filament::button icon="heroicon-o-arrow-up-tray" color="gray" x-on:click="$refs.upload.click()" x-bind:disabled="uploading">
-                {{ __('Upload') }}
+                {{ __('filament-media-manager::media.picker.upload') }}
             </x-filament::button>
-            <span class="fmm-picker-uploading" x-cloak x-show="uploading">{{ __('Uploading…') }}</span>
+            <span class="fmm-picker-uploading" x-cloak x-show="uploading">{{ __('filament-media-manager::media.picker.uploading') }}</span>
         </div>
     </div>
 </x-dynamic-component>

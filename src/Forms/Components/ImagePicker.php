@@ -76,13 +76,13 @@ class ImagePicker extends Field
             ]));
 
             if (Media::query()->whereKey($mediaIds)->count() !== count($mediaIds)) {
-                $fail(__('This image is no longer in the library.'));
+                $fail(__('filament-media-manager::media.picker.image_missing'));
             }
         });
 
         $this->registerActions([
             fn (): Action => Action::make('select')
-                ->modalHeading(__('Select an image'))
+                ->modalHeading(__('filament-media-manager::media.picker.select_image'))
                 ->modalWidth(Width::FiveExtraLarge)
                 ->modalContent(fn (array $arguments): View => view('filament-media-manager::forms.components.image-picker-modal', [
                     'statePath' => $arguments['statePath'] ?? '',

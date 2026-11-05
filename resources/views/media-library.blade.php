@@ -12,7 +12,7 @@
         <div class="fmm-toolbar">
             <nav class="fmm-breadcrumbs">
                 <button type="button" wire:click="openFolder(null)" @class(['fmm-crumb', 'fmm-crumb-current' => ! $currentFolder])>
-                    Media
+                    {{ __('filament-media-manager::media.library.root') }}
                 </button>
                 @foreach ($breadcrumbFolders as $crumb)
                     <span class="fmm-crumb-sep">/</span>
@@ -26,7 +26,7 @@
                 <input
                     type="search"
                     wire:model.live.debounce.400ms="search"
-                    placeholder="Search this folder…"
+                    placeholder="{{ __('filament-media-manager::media.library.search_placeholder') }}"
                     class="fmm-search fi-input"
                 />
                 {{ $this->createFolderAction }}
@@ -60,7 +60,7 @@
                 >
                     <input type="file" multiple class="fmm-upload-input" x-ref="input" x-on:change="handleFiles($event.target.files); $event.target.value = null;" />
                     <x-filament::button icon="heroicon-o-arrow-up-tray" x-on:click="$refs.input.click()" x-show="! uploading">
-                        Upload
+                        {{ __('filament-media-manager::media.library.upload') }}
                     </x-filament::button>
                     <div class="fmm-upload-progress" x-show="uploading" x-cloak>
                         <div class="fmm-upload-progress-bar" x-bind:style="`width: ${progress}%`"></div>
@@ -71,10 +71,10 @@
 
         @if (count($selected) > 0)
             <div class="fmm-bulk-bar">
-                <span>{{ count($selected) }} selected</span>
+                <span>{{ __('filament-media-manager::media.library.selected', ['count' => count($selected)]) }}</span>
                 {{ $this->bulkMoveAction }}
                 {{ $this->bulkDeleteAction }}
-                <x-filament::link tag="button" wire:click="$set('selected', [])">Clear</x-filament::link>
+                <x-filament::link tag="button" wire:click="$set('selected', [])">{{ __('filament-media-manager::media.library.clear') }}</x-filament::link>
             </div>
         @endif
 

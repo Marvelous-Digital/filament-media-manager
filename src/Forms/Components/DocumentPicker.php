@@ -33,13 +33,13 @@ class DocumentPicker extends Field
             $media = is_numeric($value) ? Media::query()->find((int) $value) : null;
 
             if (! $media || ! in_array($media->mime_type, $component->getMimeTypes(), true)) {
-                $fail(__('This file is no longer in the library.'));
+                $fail(__('filament-media-manager::media.picker.file_missing'));
             }
         });
 
         $this->registerActions([
             fn (DocumentPicker $component): Action => Action::make('select')
-                ->modalHeading(__('Select a file'))
+                ->modalHeading(__('filament-media-manager::media.picker.select_file'))
                 ->modalWidth(Width::FiveExtraLarge)
                 ->modalContent(fn (array $arguments): View => view('filament-media-manager::forms.components.image-picker-modal', [
                     'statePath' => $arguments['statePath'] ?? '',

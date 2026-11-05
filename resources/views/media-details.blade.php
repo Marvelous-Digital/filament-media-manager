@@ -8,13 +8,13 @@
     </div>
     @if ($media)
         <dl class="fmm-details-facts">
-            <div><dt>File</dt><dd>{{ $media->file_name }}</dd></div>
-            <div><dt>Type</dt><dd>{{ $media->mime_type }}</dd></div>
-            <div><dt>Size</dt><dd>{{ \Illuminate\Support\Number::fileSize($media->size) }}</dd></div>
+            <div><dt>{{ __('filament-media-manager::media.details.file') }}</dt><dd>{{ $media->file_name }}</dd></div>
+            <div><dt>{{ __('filament-media-manager::media.details.type') }}</dt><dd>{{ $media->mime_type }}</dd></div>
+            <div><dt>{{ __('filament-media-manager::media.details.size') }}</dt><dd>{{ \Illuminate\Support\Number::fileSize($media->size) }}</dd></div>
             @if ($media->width)
-                <div><dt>Dimensions</dt><dd>{{ $media->width }} × {{ $media->height }}</dd></div>
+                <div><dt>{{ __('filament-media-manager::media.details.dimensions') }}</dt><dd>{{ $media->width }} × {{ $media->height }}</dd></div>
             @endif
-            <div><dt>Uploaded</dt><dd>{{ $media->created_at->diffForHumans() }}</dd></div>
+            <div><dt>{{ __('filament-media-manager::media.details.uploaded') }}</dt><dd>{{ $media->created_at->diffForHumans() }}</dd></div>
         </dl>
     @endif
 </div>

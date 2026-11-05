@@ -7,7 +7,7 @@
 >
     <div class="fmm-toolbar">
         <nav class="fmm-breadcrumbs">
-            <button type="button" wire:click="openFolder(null)" @class(['fmm-crumb', 'fmm-crumb-current' => ! $currentFolder])>Media</button>
+            <button type="button" wire:click="openFolder(null)" @class(['fmm-crumb', 'fmm-crumb-current' => ! $currentFolder])>{{ __('filament-media-manager::media.library.root') }}</button>
             @foreach ($breadcrumbFolders as $crumb)
                 <span class="fmm-crumb-sep">/</span>
                 <button type="button" wire:click="openFolder({{ $crumb->id }})" @class(['fmm-crumb', 'fmm-crumb-current' => $crumb->id === $folderId])>{{ $crumb->name }}</button>
@@ -15,7 +15,7 @@
         </nav>
 
         <div class="fmm-toolbar-actions">
-            <input type="search" wire:model.live.debounce.400ms="search" placeholder="Search this folder…" class="fmm-search fi-input" />
+            <input type="search" wire:model.live.debounce.400ms="search" placeholder="{{ __('filament-media-manager::media.library.search_placeholder') }}" class="fmm-search fi-input" />
             <div x-data="{
                     uploading: false,
                     maxBytes: {{ (int) config('filament-media-manager.max_file_size') }} * 1024,
@@ -42,8 +42,8 @@
                 class="fmm-picker-upload"
             >
                 <input type="file" multiple accept="image/*" class="fmm-upload-input" x-ref="input" x-on:change="handleFiles($event.target.files); $event.target.value = null;" />
-                <x-filament::button icon="heroicon-o-arrow-up-tray" x-on:click="$refs.input.click()" x-show="! uploading">Upload</x-filament::button>
-                <span x-show="uploading" x-cloak>Uploading…</span>
+                <x-filament::button icon="heroicon-o-arrow-up-tray" x-on:click="$refs.input.click()" x-show="! uploading">{{ __('filament-media-manager::media.library.upload') }}</x-filament::button>
+                <span x-show="uploading" x-cloak>{{ __('filament-media-manager::media.library.uploading') }}</span>
             </div>
         </div>
     </div>

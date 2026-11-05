@@ -121,15 +121,15 @@
             <div class="fmm-picker-empty">
                 <div class="fmm-picker-buttons">
                     <x-filament::button icon="heroicon-o-arrow-up-tray" color="gray" x-on:click="$refs['upload-main'].click()" x-bind:disabled="uploading">
-                        {{ __('Upload') }}
+                        {{ __('filament-media-manager::media.picker.upload') }}
                     </x-filament::button>
                     <x-filament::button icon="heroicon-o-photo" color="gray" x-on:click="pick('main')">
-                        {{ __('Pick from library') }}
+                        {{ __('filament-media-manager::media.picker.pick_from_library') }}
                     </x-filament::button>
-                    <span class="fmm-picker-uploading" x-cloak x-show="uploading">{{ __('Uploading…') }}</span>
+                    <span class="fmm-picker-uploading" x-cloak x-show="uploading">{{ __('filament-media-manager::media.picker.uploading') }}</span>
                 </div>
 
-                <p class="fmm-formats-label">{{ __('Required formats') }}</p>
+                <p class="fmm-formats-label">{{ __('filament-media-manager::media.picker.required_formats') }}</p>
                 <div class="fmm-formats">
                     @foreach ($variations as $name => [$width, $height])
                         <div class="fmm-format" wire:key="fmm-format-{{ $statePath }}-{{ $name }}">
@@ -145,25 +145,25 @@
                 <img src="{{ $media[$state['media_id']]['url'] ?? '' }}" alt="{{ $state['alt'] }}" />
                 <div class="fmm-picker-actions">
                     <x-filament::button size="sm" color="gray" icon="heroicon-o-photo" x-on:click="pick('main')">
-                        {{ __('Change') }}
+                        {{ __('filament-media-manager::media.picker.change') }}
                     </x-filament::button>
                     <x-filament::button size="sm" color="gray" icon="heroicon-o-arrow-up-tray" x-on:click="$refs['upload-main'].click()" x-bind:disabled="uploading">
-                        {{ __('Upload new') }}
+                        {{ __('filament-media-manager::media.picker.upload_new') }}
                     </x-filament::button>
                     <x-filament::button size="sm" color="danger" icon="heroicon-o-trash" x-on:click="call('removeImage')">
-                        {{ __('Remove') }}
+                        {{ __('filament-media-manager::media.picker.remove') }}
                     </x-filament::button>
-                    <span class="fmm-picker-uploading" x-cloak x-show="uploading">{{ __('Uploading…') }}</span>
+                    <span class="fmm-picker-uploading" x-cloak x-show="uploading">{{ __('filament-media-manager::media.picker.uploading') }}</span>
                 </div>
             </div>
 
             <div class="fmm-picker-alt">
-                <label for="fmm-alt-{{ $statePath }}">{{ __('Alt text') }}</label>
-                <input id="fmm-alt-{{ $statePath }}" type="text" class="fi-input fmm-alt-input" x-model="state.alt" x-on:input="touch()" placeholder="{{ __('Describe this image') }}" />
+                <label for="fmm-alt-{{ $statePath }}">{{ __('filament-media-manager::media.picker.alt_text') }}</label>
+                <input id="fmm-alt-{{ $statePath }}" type="text" class="fi-input fmm-alt-input" x-model="state.alt" x-on:input="touch()" placeholder="{{ __('filament-media-manager::media.picker.alt_text_placeholder') }}" />
             </div>
 
             <p class="fmm-unsaved" x-cloak x-show="state?.dirty">
-                {{ __('Not saved yet — image changes go live when you save.') }}
+                {{ __('filament-media-manager::media.picker.unsaved') }}
             </p>
 
             <div class="fmm-variants">
@@ -178,7 +178,7 @@
                         <div class="fmm-variant-header">
                             <span class="fmm-variant-name">{{ $name }} · {{ Ratio::reduce($width, $height) }}</span>
                             @if ($isOverridden)
-                                <span class="fmm-variant-badge">{{ __('Own image') }}</span>
+                                <span class="fmm-variant-badge">{{ __('filament-media-manager::media.picker.own_image') }}</span>
                             @endif
                         </div>
 
@@ -194,28 +194,28 @@
                                     icon="heroicon-o-arrow-path"
                                     x-on:click="$wire.mountAction('retryConversion', { conversion: {{ $conversion->id }} }, { schemaComponent: @js($key) })"
                                 >
-                                    {{ __('Retry') }}
+                                    {{ __('filament-media-manager::media.picker.retry') }}
                                 </x-filament::button>
                             @elseif ($conversion?->status === ConversionStatus::Pending)
-                                <span class="fmm-variant-pending">{{ __('Generating…') }}</span>
+                                <span class="fmm-variant-pending">{{ __('filament-media-manager::media.picker.generating') }}</span>
                             @elseif ($conversion?->status === ConversionStatus::Completed)
-                                <span class="fmm-variant-ready">{{ __('Ready') }}</span>
+                                <span class="fmm-variant-ready">{{ __('filament-media-manager::media.picker.ready') }}</span>
                             @endif
                         </div>
 
                         <div class="fmm-variant-actions">
                             <x-filament::button size="xs" color="gray" x-on:click="open = open === @js($name) ? null : @js($name)">
-                                {{ __('Reframe') }}
+                                {{ __('filament-media-manager::media.picker.reframe') }}
                             </x-filament::button>
                             <x-filament::button size="xs" color="gray" x-on:click="pick(@js($name))">
-                                {{ __('Use different image') }}
+                                {{ __('filament-media-manager::media.picker.use_different_image') }}
                             </x-filament::button>
                             <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-up-tray" x-on:click="$refs[@js('upload-' . $name)].click()" x-bind:disabled="uploading" :label-sr-only="true">
-                                {{ __('Upload for this format') }}
+                                {{ __('filament-media-manager::media.picker.upload_for_format') }}
                             </x-filament::button>
                             @if ($isOverridden)
                                 <x-filament::button size="xs" color="gray" x-on:click="call('useMainImage', { variation: @js($name) })">
-                                    {{ __('Use main image') }}
+                                    {{ __('filament-media-manager::media.picker.use_main_image') }}
                                 </x-filament::button>
                             @endif
                             <input type="file" accept="image/*" class="fmm-upload-input" x-ref="upload-{{ $name }}" x-on:change="upload(@js($name), $event.target.files); $event.target.value = null" />
@@ -223,7 +223,7 @@
 
                         @if ($isOverridden)
                             <div class="fmm-picker-alt">
-                                <label for="fmm-alt-{{ $statePath }}-{{ $name }}">{{ __('Alt text for this format') }}</label>
+                                <label for="fmm-alt-{{ $statePath }}-{{ $name }}">{{ __('filament-media-manager::media.picker.alt_text_for_format') }}</label>
                                 <input id="fmm-alt-{{ $statePath }}-{{ $name }}" type="text" class="fi-input fmm-alt-input" x-model="state.variants[@js($name)].alt" x-on:input="touch()" />
                             </div>
                         @endif
@@ -244,7 +244,7 @@
 
                             <div class="fmm-zoom">
                                 <label class="fmm-zoom-label" for="fmm-zoom-{{ $statePath }}-{{ $name }}">
-                                    {{ __('Zoom') }}
+                                    {{ __('filament-media-manager::media.picker.zoom') }}
                                     <span class="fmm-zoom-value" x-text="`${Number(state.variants[@js($name)].zoom).toFixed(1)}×`"></span>
                                 </label>
                                 <input
@@ -258,7 +258,7 @@
                                     x-on:input="touch()"
                                 />
                                 <p class="fmm-zoom-warning" x-cloak x-show="overZoomed(@js($name))">
-                                    {{ __('Zoomed past the source resolution — the image will be upscaled and may look soft.') }}
+                                    {{ __('filament-media-manager::media.picker.zoom_warning') }}
                                 </p>
                             </div>
                         </div>
