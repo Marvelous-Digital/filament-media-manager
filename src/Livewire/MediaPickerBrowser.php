@@ -3,6 +3,7 @@
 namespace MarvelousDigital\FilamentMediaManager\Livewire;
 
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use MarvelousDigital\FilamentMediaManager\Concerns\BrowsesMedia;
@@ -17,14 +18,23 @@ class MediaPickerBrowser extends Component
 
     public string $target = 'main';
 
+    /** @var array<int, string> Empty means images only. Locked: the client cannot widen what it may browse and upload. */
+    #[Locked]
+    public array $mimeTypes = [];
+
     protected function imagesOnly(): bool
     {
-        return true;
+        return $this->mimeTypes === [];
+    }
+
+    protected function allowedMimeTypes(): ?array
+    {
+        return $this->mimeTypes === [] ? null : $this->mimeTypes;
     }
 
     public function select(int $mediaId): void
     {
-        if (! Media::query()->whereKey($mediaId)->exists()) {
+        if (! $this->restrictToBrowsable(Media::query()->whereKey($mediaId))->exists()) {
             return;
         }
 

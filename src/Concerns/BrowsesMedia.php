@@ -30,6 +30,16 @@ trait BrowsesMedia
         return false;
     }
 
+    /**
+     * Mime types the browser is restricted to (null = no mime filter).
+     *
+     * @return array<int, string>|null
+     */
+    protected function allowedMimeTypes(): ?array
+    {
+        return null;
+    }
+
     public function currentFolder(): ?MediaFolder
     {
         return $this->folderId ? MediaFolder::find($this->folderId) : null;
@@ -63,7 +73,16 @@ trait BrowsesMedia
         $folder = $this->currentFolder();
         $stored = 0;
 
+        $allowed = $this->allowedMimeTypes();
+        $refused = false;
+
         foreach ($this->uploads as $file) {
+            if ($allowed !== null && ! in_array($file->getMimeType(), $allowed, true)) {
+                $refused = true;
+
+                continue;
+            }
+
             try {
                 app(UploadMedia::class)->execute($file, $folder);
                 $stored++;
@@ -77,6 +96,10 @@ trait BrowsesMedia
         }
 
         $this->uploads = [];
+
+        if ($refused) {
+            $this->addError('uploads', 'This file type is not allowed here.');
+        }
 
         if ($stored > 0) {
             Notification::make()
@@ -112,6 +135,23 @@ trait BrowsesMedia
             ->send();
     }
 
+    /**
+     * Limits a media query to what this browser may show (and so, hand out): its mime types,
+     * or images only.
+     */
+    protected function restrictToBrowsable(Builder $query): Builder
+    {
+        $allowed = $this->allowedMimeTypes();
+
+        if ($allowed !== null) {
+            $query->whereIn('mime_type', $allowed);
+        } elseif ($this->imagesOnly()) {
+            $query->where('type', MediaType::Image->value);
+        }
+
+        return $query;
+    }
+
     protected function mediaQuery(): Builder
     {
         $query = Media::query();
@@ -120,11 +160,7 @@ trait BrowsesMedia
             ? $query->whereNull('folder_id')
             : $query->where('folder_id', $this->folderId);
 
-        if ($this->imagesOnly()) {
-            $query->where('type', MediaType::Image->value);
-        }
-
-        return $query
+        return $this->restrictToBrowsable($query)
             ->when($this->search !== '', function (Builder $query) {
                 $query->where(function (Builder $query) {
                     $query->where('name', 'like', "%{$this->search}%")

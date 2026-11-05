@@ -1,5 +1,8 @@
 <?php
 
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
 use MarvelousDigital\FilamentMediaManager\Livewire\MediaPickerBrowser;
@@ -38,3 +41,50 @@ it('keeps the browser open when appending', function () {
         ->call('select', $media->id)
         ->assertDispatched('image-picker:close');
 });
+
+it('lists only the given mime types', function () {
+    Media::factory()->create(['name' => 'contract', 'type' => MediaType::Document, 'mime_type' => 'application/pdf']);
+    Media::factory()->create(['name' => 'sunset-photo', 'type' => MediaType::Image]);
+    Media::factory()->create(['name' => 'quarterly-docx', 'type' => MediaType::Document, 'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']);
+
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.file', 'target' => 'main', 'mimeTypes' => ['application/pdf']])
+        ->assertSee('contract')
+        ->assertDontSee('sunset-photo')
+        ->assertDontSee('quarterly-docx');
+});
+
+it('refuses an upload outside the mime types', function () {
+    Storage::fake(config('filament-media-manager.disk'));
+
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.file', 'target' => 'main', 'mimeTypes' => ['application/pdf']])
+        ->set('uploads', [UploadedFile::fake()->image('photo.png')])
+        ->assertHasErrors('uploads');
+
+    expect(Media::query()->count())->toBe(0);
+});
+
+it('refuses to select a media outside the mime types', function () {
+    $image = Media::factory()->create();
+
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.file', 'target' => 'main', 'mimeTypes' => ['application/pdf']])
+        ->call('select', $image->id)
+        ->assertNotDispatched('image-picker:selected');
+});
+
+it('refuses to select a non-image when only images are allowed', function () {
+    $pdf = Media::factory()->create(['type' => MediaType::Document, 'mime_type' => 'application/pdf']);
+
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.hero', 'target' => 'main'])
+        ->call('select', $pdf->id)
+        ->assertNotDispatched('image-picker:selected');
+});
+
+it('refuses to widen the mime types from the client', function () {
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.file', 'target' => 'main', 'mimeTypes' => ['application/pdf']])
+        ->set('mimeTypes', ['application/pdf', 'application/x-msdownload']);
+})->throws(CannotUpdateLockedPropertyException::class);
+
+it('refuses to switch an image browser to other mime types from the client', function () {
+    Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.image', 'target' => 'main'])
+        ->set('mimeTypes', ['application/pdf']);
+})->throws(CannotUpdateLockedPropertyException::class);
