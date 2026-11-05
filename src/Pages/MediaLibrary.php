@@ -54,6 +54,7 @@ class MediaLibrary extends Page
             ->modalHeading(__('filament-media-manager::media.actions.new_folder'))
             ->schema([
                 TextInput::make('name')
+                    ->label(__('filament-media-manager::media.fields.name'))
                     ->required()
                     ->maxLength(255)
                     ->rules([
@@ -76,6 +77,7 @@ class MediaLibrary extends Page
             ])
             ->schema(fn (array $arguments): array => [
                 TextInput::make('name')
+                    ->label(__('filament-media-manager::media.fields.name'))
                     ->required()
                     ->maxLength(255)
                     ->rules([
@@ -136,7 +138,7 @@ class MediaLibrary extends Page
             ->schema(fn (array $arguments): array => [
                 View::make('filament-media-manager::media-details')
                     ->viewData(['media' => Media::find((int) $arguments['media'])]),
-                TextInput::make('name')->required()->maxLength(255),
+                TextInput::make('name')->label(__('filament-media-manager::media.fields.name'))->required()->maxLength(255),
                 Textarea::make('alt_text')->label(__('filament-media-manager::media.fields.alt_text'))->rows(3)->maxLength(255),
                 Select::make('folder_id')
                     ->label(__('filament-media-manager::media.fields.folder'))

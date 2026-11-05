@@ -31,6 +31,7 @@ return [
     ],
 
     'fields' => [
+        'name' => 'Name',
         'alt_text' => 'Alt text',
         'folder' => 'Folder',
         'root' => 'Root',

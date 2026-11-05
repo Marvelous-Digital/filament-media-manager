@@ -31,6 +31,7 @@ return [
     ],
 
     'fields' => [
+        'name' => 'Nom',
         'alt_text' => 'Texte alternatif',
         'folder' => 'Dossier',
         'root' => 'Racine',
