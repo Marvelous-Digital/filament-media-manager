@@ -1,9 +1,10 @@
 <?php
 
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
+use MarvelousDigital\FilamentMediaManager\Livewire\MediaPickerBrowser;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFolder;
-use MarvelousDigital\FilamentMediaManager\Livewire\MediaPickerBrowser;
 use MarvelousDigital\FilamentMediaManager\Pages\MediaLibrary;
 
 beforeEach(function () {
@@ -53,7 +54,7 @@ it('renders the picker browser in French', function () {
 });
 
 /** The label of the "name" field of the schema of the action the page has mounted. */
-function mountedNameLabel(\Livewire\Features\SupportTesting\Testable $page): string
+function mountedNameLabel(Testable $page): string
 {
     $schema = (fn () => $this->getMountedActionSchema())->call($page->instance());
 
