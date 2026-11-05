@@ -32,7 +32,7 @@
         @if (! $hasValue)
             <div class="fmm-picker-buttons">
                 <x-filament::button icon="heroicon-o-document" color="gray" x-on:click="pick()">
-                    {{ __('Pick from library') }}
+                    {{ __('filament-media-manager::media.picker.pick_from_library') }}
                 </x-filament::button>
             </div>
         @else
@@ -44,14 +44,14 @@
                         <span class="fmm-document-info">{{ $format }} · {{ Number::fileSize($media->size) }}</span>
                     </div>
                 @else
-                    <span class="fmm-document-missing">{{ __('This file is no longer in the library.') }}</span>
+                    <span class="fmm-document-missing">{{ __('filament-media-manager::media.picker.file_missing') }}</span>
                 @endif
                 <div class="fmm-picker-actions">
                     <x-filament::button size="sm" color="gray" icon="heroicon-o-document" x-on:click="pick()">
-                        {{ __('Change') }}
+                        {{ __('filament-media-manager::media.picker.change') }}
                     </x-filament::button>
                     <x-filament::button size="sm" color="danger" icon="heroicon-o-trash" x-on:click="$wire.callSchemaComponentMethod(@js($key), 'removeDocument')">
-                        {{ __('Remove') }}
+                        {{ __('filament-media-manager::media.picker.remove') }}
                     </x-filament::button>
                 </div>
             </div>

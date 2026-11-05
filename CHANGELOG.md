@@ -4,6 +4,7 @@ All notable changes to `filament-media-manager` will be documented in this file.
 
 ## Unreleased
 
+- Translations: English + French; publish with `--tag=filament-media-manager-translations`. All interface text now lives in `resources/lang/{en,fr}/media.php` under the `filament-media-manager::media.*` keys, replacing the former English-sentence keys.
 - `DocumentPicker` form component: pick one file of given `->mimeTypes()` from the library, stored as a `Media` id. `MediaPickerBrowser` takes `mimeTypes` (empty = images only), and now refuses to select a media outside what it lists.
 - `ImagesPicker` form component: pick several images in a sortable grid with per-image alt text and optional `->variations()`, stored as an ordered array of `MediaFieldValue` ids.
 - `MediaFieldValue::urlFor()` and `altFor()`: URL and alt text of a variation, falling back to the original image and main alt text.

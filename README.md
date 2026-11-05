@@ -278,6 +278,14 @@ DocumentPicker::make('brochure_id')
 
 The field shows the file name, format and size, with change and remove actions. On save it fails validation with "This file is no longer in the library." when the id no longer exists or its mime type is not in the list. Read the file back with `$field->getSelectedMedia()` in a form, or `Media::find($id)?->url()` elsewhere.
 
+## Translations
+
+The interface is available in English and French. To customise the texts, publish the translation files:
+
+```bash
+php artisan vendor:publish --tag=filament-media-manager-translations
+```
+
 ## Roadmap
 
 The following are intentionally out of scope for this first release and may be added later:

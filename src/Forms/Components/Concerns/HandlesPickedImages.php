@@ -20,7 +20,7 @@ trait HandlesPickedImages
         $media = Media::query()->whereKey($mediaId)->where('type', MediaType::Image)->first();
 
         if (! $media) {
-            Notification::make()->title(__('This image is no longer in the library.'))->danger()->send();
+            Notification::make()->title(__('filament-media-manager::media.picker.image_missing'))->danger()->send();
         }
 
         return $media;
@@ -32,7 +32,7 @@ trait HandlesPickedImages
 
         try {
             if (! $file instanceof TemporaryUploadedFile) {
-                Notification::make()->title(__('Upload failed'))->body(__('The file could not be uploaded. Please try again.'))->danger()->send();
+                Notification::make()->title(__('filament-media-manager::media.notifications.upload_failed'))->body(__('filament-media-manager::media.notifications.upload_failed_body'))->danger()->send();
 
                 return null;
             }
@@ -41,8 +41,8 @@ trait HandlesPickedImages
 
             if ($media->type !== MediaType::Image) {
                 Notification::make()
-                    ->title(__('Upload failed'))
-                    ->body(__('Only images can be used here. The file was added to the media library.'))
+                    ->title(__('filament-media-manager::media.notifications.upload_failed'))
+                    ->body(__('filament-media-manager::media.notifications.upload_not_image'))
                     ->danger()
                     ->send();
 
@@ -52,7 +52,7 @@ trait HandlesPickedImages
             return $media;
         } catch (ValidationException $exception) {
             Notification::make()
-                ->title(__('Upload failed'))
+                ->title(__('filament-media-manager::media.notifications.upload_failed'))
                 ->body(implode(' ', collect($exception->errors())->flatten()->all()))
                 ->danger()
                 ->send();

@@ -20,6 +20,7 @@ class MediaManagerServiceProvider extends PackageServiceProvider
         $package->name(static::$name)
             ->hasConfigFile()
             ->hasViews(static::$viewNamespace)
+            ->hasTranslations()
             ->hasMigrations(['create_filament_media_manager_tables', 'create_media_field_tables'])
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command

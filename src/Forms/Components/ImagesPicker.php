@@ -71,20 +71,20 @@ class ImagesPicker extends Field
             $mediaIds = array_unique(array_column($items, 'media_id'));
 
             if (Media::query()->whereKey($mediaIds)->count() !== count($mediaIds)) {
-                $fail(__('This image is no longer in the library.'));
+                $fail(__('filament-media-manager::media.picker.image_missing'));
             }
         });
 
         $this->registerActions([
             fn (): Action => Action::make('select')
-                ->modalHeading(__('Add images'))
+                ->modalHeading(__('filament-media-manager::media.picker.add_images'))
                 ->modalWidth(Width::FiveExtraLarge)
                 ->modalContent(fn (array $arguments): View => view('filament-media-manager::forms.components.image-picker-modal', [
                     'statePath' => $arguments['statePath'] ?? '',
                     'target' => 'append',
                 ]))
                 ->modalSubmitAction(false)
-                ->modalCancelActionLabel(__('Done')),
+                ->modalCancelActionLabel(__('filament-media-manager::media.picker.done')),
         ]);
     }
 
@@ -224,6 +224,6 @@ class ImagesPicker extends Field
         $this->state(ImagesPickerState::withImage($this->getPickerState(), $media));
 
         // The library browser stays open over the grid while appending, so confirm each pick.
-        Notification::make()->title(__('Image added'))->success()->duration(2000)->send();
+        Notification::make()->title(__('filament-media-manager::media.notifications.image_added'))->success()->duration(2000)->send();
     }
 }
