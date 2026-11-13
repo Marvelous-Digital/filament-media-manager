@@ -4,6 +4,8 @@ All notable changes to `filament-media-manager` will be documented in this file.
 
 ## Unreleased
 
+- `ImagePicker` field layout: one stage with a strip of live crop thumbnails (Base first) replaces the per-variation cards. Click a thumbnail to reframe it on the stage; its toolbar holds zoom, Reset, Use another image / Upload for this format, Back to base image and Retry. Failed or over-zoomed variations show a red dot, generating ones a spinner. The base image's Change / Upload new / Remove moved to a ⋯ menu. No API or stored-data change.
+  - Translations: added `picker.more_actions`, `change_base`, `upload_new_base`, `base`, `conversion_failed`, `over_zoomed`, `reset`, `use_another_image_for`, `upload_for`, `back_to_base`, `alt_text_for`; removed `picker.upload_new`, `ready`, `reframe`, `use_different_image`, `upload_for_format`, `use_main_image`, `alt_text_for_format`.
 - Translations: English + French; publish with `--tag=filament-media-manager-translations`. All interface text now lives in `resources/lang/{en,fr}/media.php` under the `filament-media-manager::media.*` keys, replacing the former English-sentence keys.
 - `DocumentPicker` form component: pick one file of given `->mimeTypes()` from the library, stored as a `Media` id. `MediaPickerBrowser` takes `mimeTypes` (empty = images only), and now refuses to select a media outside what it lists.
 - `ImagesPicker` form component: pick several images in a sortable grid with per-image alt text and optional `->variations()`, stored as an ordered array of `MediaFieldValue` ids.
