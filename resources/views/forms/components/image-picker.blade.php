@@ -25,6 +25,8 @@
             media: @js($media),
             targets: @js($variations),
             open: null,
+            // UI only, never saved: the variation being reframed on the stage, null for the base image.
+            selected: @js(array_key_first($variations)),
             uploading: false,
             selected(detail) {
                 if (detail?.statePath !== @js($statePath)) return;
@@ -57,6 +59,9 @@
             sourceOf(name) {
                 const variant = this.state?.variants?.[name];
                 return this.media[variant?.media_id ?? this.state?.media_id] ?? null;
+            },
+            stageSource() {
+                return this.selected === null ? this.media[this.state?.media_id] ?? null : this.sourceOf(this.selected);
             },
             hasSize(name) {
                 const source = this.sourceOf(name);
@@ -141,20 +146,29 @@
                 </div>
             </div>
         @else
-            <div class="fmm-picker-preview">
-                <img src="{{ $media[$state['media_id']]['url'] ?? '' }}" alt="{{ $state['alt'] }}" />
-                <div class="fmm-picker-actions">
-                    <x-filament::button size="sm" color="gray" icon="heroicon-o-photo" x-on:click="pick('main')">
-                        {{ __('filament-media-manager::media.picker.change') }}
-                    </x-filament::button>
-                    <x-filament::button size="sm" color="gray" icon="heroicon-o-arrow-up-tray" x-on:click="$refs['upload-main'].click()" x-bind:disabled="uploading">
-                        {{ __('filament-media-manager::media.picker.upload_new') }}
-                    </x-filament::button>
-                    <x-filament::button size="sm" color="danger" icon="heroicon-o-trash" x-on:click="call('removeImage')">
-                        {{ __('filament-media-manager::media.picker.remove') }}
-                    </x-filament::button>
-                    <span class="fmm-picker-uploading" x-cloak x-show="uploading">{{ __('filament-media-manager::media.picker.uploading') }}</span>
-                </div>
+            <div class="fmm-picker-header">
+                <span class="fmm-picker-uploading" x-cloak x-show="uploading">{{ __('filament-media-manager::media.picker.uploading') }}</span>
+                <x-filament::dropdown placement="bottom-end">
+                    <x-slot name="trigger">
+                        <x-filament::icon-button icon="heroicon-m-ellipsis-horizontal" color="gray" :label="__('filament-media-manager::media.picker.more_actions')" />
+                    </x-slot>
+
+                    <x-filament::dropdown.list>
+                        <x-filament::dropdown.list.item icon="heroicon-o-photo" x-on:click="pick('main')">
+                            {{ __('filament-media-manager::media.picker.change_base') }}
+                        </x-filament::dropdown.list.item>
+                        <x-filament::dropdown.list.item icon="heroicon-o-arrow-up-tray" x-on:click="$refs['upload-main'].click()" x-bind:disabled="uploading">
+                            {{ __('filament-media-manager::media.picker.upload_new_base') }}
+                        </x-filament::dropdown.list.item>
+                        <x-filament::dropdown.list.item icon="heroicon-o-trash" color="danger" x-on:click="call('removeImage')">
+                            {{ __('filament-media-manager::media.picker.remove') }}
+                        </x-filament::dropdown.list.item>
+                    </x-filament::dropdown.list>
+                </x-filament::dropdown>
+            </div>
+
+            <div class="fmm-stage">
+                <img x-ref="stage" src="{{ $media[$state['media_id']]['url'] ?? '' }}" x-bind:src="stageSource()?.url" alt="{{ $state['alt'] }}" draggable="false" />
             </div>
 
             <div class="fmm-picker-alt">

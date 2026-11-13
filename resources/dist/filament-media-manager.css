@@ -47,9 +47,10 @@
 
 /* Image picker field (Task 10) */
 .fmm-image-picker { display: flex; flex-direction: column; gap: 1rem; }
-.fmm-picker-preview { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
-.fmm-picker-preview img { max-height: 16rem; max-width: 100%; border-radius: 0.75rem; object-fit: contain; background: rgb(243 244 246); }
-.dark .fmm-picker-preview img { background: rgb(39 39 42); }
+.fmm-picker-header { display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; }
+.fmm-stage { position: relative; overflow: hidden; border-radius: 0.5rem; background: rgb(243 244 246); }
+.dark .fmm-stage { background: rgb(39 39 42); }
+.fmm-stage img { display: block; width: 100%; height: auto; max-height: 24rem; object-fit: contain; -webkit-user-select: none; user-select: none; pointer-events: none; }
 .fmm-picker-actions { display: flex; gap: 0.5rem; }
 .fmm-picker-alt { display: flex; flex-direction: column; gap: 0.25rem; }
 .fmm-picker-alt label { font-size: 0.8125rem; font-weight: 500; color: rgb(107 114 128); }

@@ -73,15 +73,29 @@ class ImagePickerTranslatorHarness extends RenderHarness
     }
 }
 
-it('renders without variant cards when no variations are configured', function () {
+it('shows the base image with its menu and no strip when no variations are configured', function () {
     $value = MediaFieldValue::factory()->for(Media::factory()->state(['width' => 2000, 'height' => 1000]), 'source')->create(['alt_text' => 'hi']);
 
     Livewire::test(NoVariationsRenderHarness::class, ['preset' => $value->id])
         ->assertOk()
+        ->assertSee('Change base image')
+        ->assertSee('Upload new base image')
+        ->assertSee('Remove')
+        ->assertSee('fmm-stage', escape: false)
         ->assertSee('Alt text')
-        ->assertDontSee('Reframe')
-        ->assertDontSee('Use different image')
+        ->assertDontSee('fmm-strip', escape: false)
+        ->assertDontSee('fmm-toolbar', escape: false)
         ->assertDontSee('Required formats');
+});
+
+it('puts the base image actions in the header menu', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+
+    Livewire::test(RenderHarness::class, ['preset' => $value->id])
+        ->assertSee('More actions')
+        ->assertSee('Change base image')
+        ->assertSee('Upload new base image')
+        ->assertDontSee('Upload new<', escape: false);
 });
 
 it('shows the required formats as ratios before anything is picked', function () {
