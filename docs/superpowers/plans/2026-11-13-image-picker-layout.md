@@ -49,7 +49,7 @@ Replaces the current `fmm-picker-preview` block (lines 144-158: image plus Chang
     - `more_actions`: 'More actions' / 'Plus d’actions'
     - `change_base`: 'Change base image' / 'Changer l’image de base'
     - `upload_new_base`: 'Upload new base image' / 'Téléverser une nouvelle image de base'
-- Removed keys: `upload_new` (en + fr), if `grep -rn "picker.upload_new" src resources` finds nothing else. Keep `change`: the gallery picker uses it.
+- Removed keys: `upload_new` (en + fr), if `grep -rn "picker.upload_new" src resources` finds nothing else. Keep `change`: the document picker uses it.
 
 - [ ] **Step 1: Write the failing tests** in `tests/ImagePickerViewTest.php`. Replace the test "renders without variant cards when no variations are configured" with:
 
