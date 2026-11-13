@@ -52,6 +52,24 @@ class NoVariationsRenderHarness extends RenderHarness
     }
 }
 
+class TwoPickersRenderHarness extends RenderHarness
+{
+    public ?int $second = null;
+
+    public function mount(): void
+    {
+        $this->form->fill(['hero_image_id' => $this->preset, 'card_image_id' => $this->second]);
+    }
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema->components([
+            ImagePicker::make('hero_image_id')->variations(['desktop' => [1500, 900]]),
+            ImagePicker::make('card_image_id')->variations(['desktop' => [1500, 900]]),
+        ])->statePath('data');
+    }
+}
+
 class ImagePickerTranslatorHarness extends RenderHarness
 {
     /** @var array<string, mixed> */
@@ -131,12 +149,56 @@ it('shows own-image controls only for overridden variants', function () {
         ->assertSee('Use main image');
 });
 
-it('renders variant cards when the source has no dimensions', function () {
+it('renders the strip and stage when the source has no dimensions', function () {
     $value = MediaFieldValue::factory()->for(Media::factory()->state(['width' => null, 'height' => null]), 'source')->create();
 
     Livewire::test(RenderHarness::class, ['preset' => $value->id])
         ->assertOk()
-        ->assertSee('Reframe');
+        ->assertSee('data-fmm-thumb="desktop"', escape: false)
+        ->assertSee('fmm-stage', escape: false);
+});
+
+it('renders a strip with the base image first and a thumbnail per variation', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory()->state(['width' => 2000, 'height' => 1000]), 'source')->create();
+
+    $html = Livewire::test(RenderHarness::class, ['preset' => $value->id])->html();
+
+    expect($html)->toContain('data-fmm-thumb-base')
+        ->and(strpos($html, 'data-fmm-thumb-base'))->toBeLessThan(strpos($html, 'data-fmm-thumb="desktop"'))
+        ->and(strpos($html, 'data-fmm-thumb="desktop"'))->toBeLessThan(strpos($html, 'data-fmm-thumb="mobile"'))
+        ->and($html)->toContain('aspect-ratio: 1500 / 900')
+        ->toContain('Base')
+        ->toContain("selected: 'desktop'")
+        ->toContain('fmm-stage-frame');
+});
+
+it('marks a failed variation with a dot and an overridden one with a badge, and no ready text', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    MediaConversion::factory()->for($value, 'value')->create(['variation' => 'desktop', 'status' => ConversionStatus::Failed]);
+    MediaConversion::factory()->for($value, 'value')->create(['variation' => 'mobile', 'status' => ConversionStatus::Completed, 'media_id' => Media::factory()->state(['width' => 600, 'height' => 800])->create()->id]);
+
+    Livewire::test(RenderHarness::class, ['preset' => $value->id])
+        ->assertSee('title="Generating this format failed"', escape: false)
+        ->assertSee('title="Own image"', escape: false)
+        ->assertDontSee('Ready');
+});
+
+it('shows a spinner on a variation that is still generating', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    MediaConversion::factory()->for($value, 'value')->create(['variation' => 'desktop', 'status' => ConversionStatus::Pending]);
+
+    Livewire::test(RenderHarness::class, ['preset' => $value->id])
+        ->assertSee('fmm-strip-spinner', escape: false)
+        ->assertSee('wire:poll', escape: false);
+});
+
+it('keeps two pickers on one form apart', function () {
+    $a = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    $b = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+
+    Livewire::test(TwoPickersRenderHarness::class, ['preset' => $a->id, 'second' => $b->id])
+        ->assertSee('fmm-thumb-data.hero_image_id-desktop', escape: false)
+        ->assertSee('fmm-thumb-data.card_image_id-desktop', escape: false);
 });
 
 it('polls while a conversion is still generating', function () {

@@ -112,7 +112,7 @@
                 return this.state.variants[name].zoom > coverWidth / tw + 0.001;
             },
             setFocus(name, event) {
-                const rect = this.$refs['img-' + name].getBoundingClientRect();
+                const rect = this.$refs.stage.getBoundingClientRect();
                 const variant = this.state.variants[name];
                 variant.focus_x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
                 variant.focus_y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
@@ -167,8 +167,75 @@
                 </x-filament::dropdown>
             </div>
 
-            <div class="fmm-stage">
+            @if (filled($variations))
+                @php
+                    $base = $media[$state['media_id']] ?? null;
+                    $baseRatio = filled($base['width'] ?? null) && filled($base['height'] ?? null) ? "{$base['width']} / {$base['height']}" : '1 / 1';
+                @endphp
+
+                <div class="fmm-strip">
+                    <button type="button" class="fmm-strip-item" data-fmm-thumb-base x-on:click="selected = null" x-bind:aria-pressed="selected === null">
+                        <span class="fmm-strip-box" style="aspect-ratio: {{ $baseRatio }}">
+                            <img src="{{ $base['url'] ?? '' }}" alt="" />
+                        </span>
+                        <span class="fmm-strip-name">{{ __('filament-media-manager::media.picker.base') }}</span>
+                    </button>
+
+                    @foreach ($variations as $name => [$width, $height])
+                        @php
+                            $isOverridden = filled($state['variants'][$name]['media_id'] ?? null);
+                            $status = $saved?->conversion($name)?->status;
+                        @endphp
+
+                        <button
+                            type="button"
+                            class="fmm-strip-item"
+                            data-fmm-thumb="{{ $name }}"
+                            wire:key="fmm-thumb-{{ $statePath }}-{{ $name }}"
+                            x-on:click="selected = @js($name)"
+                            x-bind:aria-pressed="selected === @js($name)"
+                        >
+                            <span class="fmm-strip-box" style="aspect-ratio: {{ $width }} / {{ $height }}">
+                                <img x-bind:src="sourceOf(@js($name))?.url" x-bind:style="previewStyle(@js($name))" alt="" />
+
+                                @if ($isOverridden)
+                                    <span class="fmm-strip-badge" title="{{ __('filament-media-manager::media.picker.own_image') }}">
+                                        <x-filament::icon icon="heroicon-m-photo" class="fmm-strip-badge-icon" />
+                                    </span>
+                                @endif
+
+                                @if ($status === ConversionStatus::Failed)
+                                    <span class="fmm-strip-dot" title="{{ __('filament-media-manager::media.picker.conversion_failed') }}"></span>
+                                @else
+                                    <span class="fmm-strip-dot" x-cloak x-show="overZoomed(@js($name))" title="{{ __('filament-media-manager::media.picker.over_zoomed') }}"></span>
+                                @endif
+
+                                @if ($status === ConversionStatus::Pending)
+                                    <span class="fmm-strip-spinner" title="{{ __('filament-media-manager::media.picker.generating') }}">
+                                        <x-filament::loading-indicator class="fmm-strip-spinner-icon" />
+                                    </span>
+                                @endif
+                            </span>
+                            <span class="fmm-strip-name">{{ $name }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            @endif
+
+            <div
+                class="fmm-stage"
+                x-bind:class="{ 'fmm-stage-editing': selected !== null }"
+                x-data="{ dragging: false }"
+                x-on:pointerdown.prevent="if (selected === null) return; dragging = true; $event.target.setPointerCapture?.($event.pointerId); setFocus(selected, $event)"
+                x-on:pointermove="dragging && selected !== null && setFocus(selected, $event)"
+                x-on:pointerup="dragging = false"
+                x-on:pointercancel="dragging = false"
+            >
                 <img x-ref="stage" src="{{ $media[$state['media_id']]['url'] ?? '' }}" x-bind:src="stageSource()?.url" alt="{{ $state['alt'] }}" draggable="false" />
+                @if (filled($variations))
+                    <span class="fmm-stage-frame" x-cloak x-show="selected !== null" x-bind:style="selected !== null ? cropRectStyle(selected) : 'display:none'"></span>
+                    <span class="fmm-focus-marker" x-cloak x-show="selected !== null" x-bind:style="selected !== null ? `left:${state.variants[selected].focus_x * 100}%;top:${state.variants[selected].focus_y * 100}%` : ''"></span>
+                @endif
             </div>
 
             <div class="fmm-picker-alt">
@@ -196,10 +263,6 @@
                             @endif
                         </div>
 
-                        <div class="fmm-variant-thumb" style="aspect-ratio: {{ $width }} / {{ $height }}">
-                            <img x-bind:src="sourceOf(@js($name))?.url" x-bind:style="previewStyle(@js($name))" alt="" />
-                        </div>
-
                         <div class="fmm-variant-status">
                             @if ($conversion?->status === ConversionStatus::Failed)
                                 <x-filament::button
@@ -212,8 +275,6 @@
                                 </x-filament::button>
                             @elseif ($conversion?->status === ConversionStatus::Pending)
                                 <span class="fmm-variant-pending">{{ __('filament-media-manager::media.picker.generating') }}</span>
-                            @elseif ($conversion?->status === ConversionStatus::Completed)
-                                <span class="fmm-variant-ready">{{ __('filament-media-manager::media.picker.ready') }}</span>
                             @endif
                         </div>
 
@@ -242,20 +303,6 @@
                             </div>
                         @endif
 
-                        <div class="fmm-reframe" x-cloak x-show="open === @js($name)">
-                            <div
-                                class="fmm-focus-image"
-                                x-data="{ dragging: false }"
-                                x-on:pointerdown.prevent="dragging = true; $event.target.setPointerCapture?.($event.pointerId); setFocus(@js($name), $event)"
-                                x-on:pointermove="dragging && setFocus(@js($name), $event)"
-                                x-on:pointerup="dragging = false"
-                                x-on:pointercancel="dragging = false"
-                            >
-                                <img x-ref="img-{{ $name }}" x-bind:src="sourceOf(@js($name))?.url" alt="" draggable="false" />
-                                <span class="fmm-focus-crop-rect" x-bind:style="cropRectStyle(@js($name))"></span>
-                                <span class="fmm-focus-marker" x-bind:style="`left:${state.variants[@js($name)].focus_x * 100}%;top:${state.variants[@js($name)].focus_y * 100}%`"></span>
-                            </div>
-
                             <div class="fmm-zoom">
                                 <label class="fmm-zoom-label" for="fmm-zoom-{{ $statePath }}-{{ $name }}">
                                     {{ __('filament-media-manager::media.picker.zoom') }}
@@ -275,7 +322,6 @@
                                     {{ __('filament-media-manager::media.picker.zoom_warning') }}
                                 </p>
                             </div>
-                        </div>
                     </div>
                 @endforeach
             </div>
