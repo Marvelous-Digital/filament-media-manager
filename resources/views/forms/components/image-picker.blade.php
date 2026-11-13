@@ -252,8 +252,8 @@
                     $jsUploadRef = (string) Js::from('upload-' . $name);
                 @endphp
 
-                <div class="fmm-toolbar" data-fmm-toolbar="{{ $name }}" wire:key="fmm-toolbar-{{ $statePath }}-{{ $name }}" x-cloak x-show="active === @js($name)">
-                    <p class="fmm-toolbar-title">{{ $name }} · {{ Ratio::reduce($width, $height) }} · {{ $width }}×{{ $height }}</p>
+                <div class="fmm-crop-toolbar" data-fmm-toolbar="{{ $name }}" wire:key="fmm-toolbar-{{ $statePath }}-{{ $name }}" x-cloak x-show="active === @js($name)">
+                    <p class="fmm-crop-toolbar-title">{{ $name }} · {{ Ratio::reduce($width, $height) }} · {{ $width }}×{{ $height }}</p>
 
                     <div class="fmm-zoom">
                         <label class="fmm-zoom-label" for="fmm-zoom-{{ $statePath }}-{{ $name }}">
@@ -275,7 +275,7 @@
                         </p>
                     </div>
 
-                    <div class="fmm-toolbar-actions">
+                    <div class="fmm-crop-toolbar-actions">
                         <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-uturn-left" x-on:click="Object.assign(state.variants[{{ $jsName }}], { focus_x: 0.5, focus_y: 0.5, zoom: 1 }); touch()">
                             {{ __('filament-media-manager::media.picker.reset') }}
                         </x-filament::button>

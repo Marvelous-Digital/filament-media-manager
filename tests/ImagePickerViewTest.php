@@ -102,7 +102,7 @@ it('shows the base image with its menu and no strip when no variations are confi
         ->assertSee('fmm-stage', escape: false)
         ->assertSee('Alt text')
         ->assertDontSee('fmm-strip', escape: false)
-        ->assertDontSee('fmm-toolbar', escape: false)
+        ->assertDontSee('fmm-crop-toolbar', escape: false)
         ->assertDontSee('Required formats');
 });
 
@@ -321,4 +321,11 @@ it('compiles every Alpine handler, including those passed to Blade components', 
     Livewire::test(RenderHarness::class, ['preset' => $value->id])
         ->assertDontSee('@js(', escape: false)
         ->assertSee('x-on:click="pick(&#039;mobile&#039;)"', escape: false);
+});
+
+it('does not restyle the media library toolbar', function () {
+    $css = file_get_contents(dirname(__DIR__) . '/resources/dist/filament-media-manager.css');
+
+    expect(substr_count($css, '.fmm-toolbar {'))->toBe(1)
+        ->and(substr_count($css, '.fmm-toolbar-actions {'))->toBe(1);
 });
