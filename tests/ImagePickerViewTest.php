@@ -176,7 +176,7 @@ it('renders a strip with the base image first and a thumbnail per variation', fu
         ->and(strpos($html, 'data-fmm-thumb="desktop"'))->toBeLessThan(strpos($html, 'data-fmm-thumb="mobile"'))
         ->and($html)->toContain('aspect-ratio: 1500 / 900')
         ->toContain('Base')
-        ->toContain("selected: 'desktop'")
+        ->toContain("active: 'desktop'")
         ->toContain('fmm-stage-frame');
 });
 
@@ -268,4 +268,46 @@ it('listens for library picks and closes with window listeners Alpine cleans up'
         ->assertSee('x-on:image-picker:selected.window="selected($event.detail)"', escape: false)
         ->assertSee('x-on:image-picker:close.window="closed($event.detail)"', escape: false)
         ->assertDontSee('addEventListener', escape: false);
+});
+
+it('keeps the library pick handler as the only selected member of the component', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+
+    $html = Livewire::test(RenderHarness::class, ['preset' => $value->id])->html();
+
+    expect(substr_count($html, 'selected('))->toBe(2) // the handler and the window listener calling it
+        ->and($html)->not->toContain('selected: ')
+        ->and($html)->not->toContain('selected ===')
+        ->and($html)->not->toContain('selected = ');
+});
+
+it('keeps the server data that changes out of the x-data attribute, so a re-render keeps the selection', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory()->state(['path' => 'unique-name-xyz.jpg']), 'source')->create();
+
+    $html = Livewire::test(RenderHarness::class, ['preset' => $value->id])->html();
+
+    preg_match('/x-data="(\{.*?\})"\s*>/s', $html, $match);
+
+    expect($match[1] ?? '')->not->toBe('')
+        ->and($match[1])->not->toContain('unique-name-xyz')
+        ->and($html)->toContain('data-fmm-media');
+});
+
+it('draws the stage frame only for a variation with known dimensions', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+
+    Livewire::test(RenderHarness::class, ['preset' => $value->id])
+        ->assertSee('x-show="active !== null && hasSize(active)"', escape: false);
+});
+
+it('fits the stage to the image so the frame matches the picture, and rings the selected thumbnail', function () {
+    $css = file_get_contents(dirname(__DIR__) . '/resources/dist/filament-media-manager.css');
+
+    preg_match('/\.fmm-stage img \{([^}]*)\}/', $css, $stageImg);
+
+    expect($stageImg[1] ?? null)->not->toBeNull()
+        ->and($stageImg[1])->not->toContain('object-fit')
+        ->and($stageImg[1])->toContain('width: auto')
+        ->and($css)->not->toContain('rgb(var(--primary-500))')
+        ->and($css)->toContain('outline: 2px solid var(--primary-500)');
 });

@@ -22,10 +22,13 @@
         x-on:image-picker:close.window="closed($event.detail)"
         x-data="{
             state: $wire.{{ $applyStateBindingModifiers("\$entangle('{$statePath}')") }},
-            media: @js($media),
+            // Filled by the hidden x-init below: kept out of this attribute so a re-render that changes
+            // the media (another image picked, a signed URL) does not re-create the component.
+            media: {},
             targets: @js($variations),
             // UI only, never saved: the variation being reframed on the stage, null for the base image.
-            selected: @js(array_key_first($variations)),
+            // Not `selected`: that name is the library pick handler below.
+            active: @js(array_key_first($variations)),
             uploading: false,
             selected(detail) {
                 if (detail?.statePath !== @js($statePath)) return;
@@ -60,7 +63,7 @@
                 return this.media[variant?.media_id ?? this.state?.media_id] ?? null;
             },
             stageSource() {
-                return this.selected === null ? this.media[this.state?.media_id] ?? null : this.sourceOf(this.selected);
+                return this.active === null ? this.media[this.state?.media_id] ?? null : this.sourceOf(this.active);
             },
             hasSize(name) {
                 const source = this.sourceOf(name);
@@ -119,6 +122,8 @@
             },
         }"
     >
+        <span hidden data-fmm-media x-init="media = @js($media)"></span>
+
         <input type="file" accept="image/*" class="fmm-upload-input" x-ref="upload-main" x-on:change="upload('main', $event.target.files); $event.target.value = null" />
 
         @if (! $hasImage)
@@ -173,7 +178,7 @@
                 @endphp
 
                 <div class="fmm-strip">
-                    <button type="button" class="fmm-strip-item" data-fmm-thumb-base x-on:click="selected = null" x-bind:aria-pressed="selected === null">
+                    <button type="button" class="fmm-strip-item" data-fmm-thumb-base x-on:click="active = null" x-bind:aria-pressed="active === null">
                         <span class="fmm-strip-box" style="aspect-ratio: {{ $baseRatio }}">
                             <img src="{{ $base['url'] ?? '' }}" alt="" />
                         </span>
@@ -191,8 +196,8 @@
                             class="fmm-strip-item"
                             data-fmm-thumb="{{ $name }}"
                             wire:key="fmm-thumb-{{ $statePath }}-{{ $name }}"
-                            x-on:click="selected = @js($name)"
-                            x-bind:aria-pressed="selected === @js($name)"
+                            x-on:click="active = @js($name)"
+                            x-bind:aria-pressed="active === @js($name)"
                         >
                             <span class="fmm-strip-box" style="aspect-ratio: {{ $width }} / {{ $height }}">
                                 <img x-bind:src="sourceOf(@js($name))?.url" x-bind:style="previewStyle(@js($name))" alt="" />
@@ -223,17 +228,17 @@
 
             <div
                 class="fmm-stage"
-                x-bind:class="{ 'fmm-stage-editing': selected !== null }"
+                x-bind:class="{ 'fmm-stage-editing': active !== null }"
                 x-data="{ dragging: false }"
-                x-on:pointerdown.prevent="if (selected === null) return; dragging = true; $event.target.setPointerCapture?.($event.pointerId); setFocus(selected, $event)"
-                x-on:pointermove="dragging && selected !== null && setFocus(selected, $event)"
+                x-on:pointerdown.prevent="if (active === null) return; dragging = true; $event.target.setPointerCapture?.($event.pointerId); setFocus(active, $event)"
+                x-on:pointermove="dragging && active !== null && setFocus(active, $event)"
                 x-on:pointerup="dragging = false"
                 x-on:pointercancel="dragging = false"
             >
                 <img x-ref="stage" src="{{ $media[$state['media_id']]['url'] ?? '' }}" x-bind:src="stageSource()?.url" alt="{{ $state['alt'] }}" draggable="false" />
                 @if (filled($variations))
-                    <span class="fmm-stage-frame" x-cloak x-show="selected !== null" x-bind:style="selected !== null ? cropRectStyle(selected) : 'display:none'"></span>
-                    <span class="fmm-focus-marker" x-cloak x-show="selected !== null" x-bind:style="selected !== null ? `left:${state.variants[selected].focus_x * 100}%;top:${state.variants[selected].focus_y * 100}%` : ''"></span>
+                    <span class="fmm-stage-frame" x-cloak x-show="active !== null && hasSize(active)" x-bind:style="active !== null && hasSize(active) ? cropRectStyle(active) : ''"></span>
+                    <span class="fmm-focus-marker" x-cloak x-show="active !== null" x-bind:style="active !== null ? `left:${state.variants[active].focus_x * 100}%;top:${state.variants[active].focus_y * 100}%` : ''"></span>
                 @endif
             </div>
 
@@ -243,7 +248,7 @@
                     $conversion = $saved?->conversion($name);
                 @endphp
 
-                <div class="fmm-toolbar" data-fmm-toolbar="{{ $name }}" wire:key="fmm-toolbar-{{ $statePath }}-{{ $name }}" x-cloak x-show="selected === @js($name)">
+                <div class="fmm-toolbar" data-fmm-toolbar="{{ $name }}" wire:key="fmm-toolbar-{{ $statePath }}-{{ $name }}" x-cloak x-show="active === @js($name)">
                     <p class="fmm-toolbar-title">{{ $name }} · {{ Ratio::reduce($width, $height) }} · {{ $width }}×{{ $height }}</p>
 
                     <div class="fmm-zoom">
