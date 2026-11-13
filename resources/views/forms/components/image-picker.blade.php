@@ -1,5 +1,6 @@
 @php
     use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
+    use Illuminate\Support\Js;
     use MarvelousDigital\FilamentMediaManager\Support\Ratio;
 
     $statePath = $getStatePath();
@@ -246,6 +247,9 @@
                 @php
                     $isOverridden = filled($state['variants'][$name]['media_id'] ?? null);
                     $conversion = $saved?->conversion($name);
+                    // Blade does not compile @js() inside a component's attributes, so the buttons get the JS literals from here.
+                    $jsName = (string) Js::from($name);
+                    $jsUploadRef = (string) Js::from('upload-' . $name);
                 @endphp
 
                 <div class="fmm-toolbar" data-fmm-toolbar="{{ $name }}" wire:key="fmm-toolbar-{{ $statePath }}-{{ $name }}" x-cloak x-show="active === @js($name)">
@@ -272,17 +276,17 @@
                     </div>
 
                     <div class="fmm-toolbar-actions">
-                        <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-uturn-left" x-on:click="Object.assign(state.variants[@js($name)], { focus_x: 0.5, focus_y: 0.5, zoom: 1 }); touch()">
+                        <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-uturn-left" x-on:click="Object.assign(state.variants[{{ $jsName }}], { focus_x: 0.5, focus_y: 0.5, zoom: 1 }); touch()">
                             {{ __('filament-media-manager::media.picker.reset') }}
                         </x-filament::button>
-                        <x-filament::button size="xs" color="gray" icon="heroicon-o-photo" x-on:click="pick(@js($name))">
+                        <x-filament::button size="xs" color="gray" icon="heroicon-o-photo" x-on:click="pick({{ $jsName }})">
                             {{ __('filament-media-manager::media.picker.use_another_image_for', ['name' => $name]) }}
                         </x-filament::button>
-                        <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-up-tray" x-on:click="$refs[@js('upload-' . $name)].click()" x-bind:disabled="uploading">
+                        <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-up-tray" x-on:click="$refs[{{ $jsUploadRef }}].click()" x-bind:disabled="uploading">
                             {{ __('filament-media-manager::media.picker.upload_for', ['name' => $name]) }}
                         </x-filament::button>
                         @if ($isOverridden)
-                            <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-uturn-left" x-on:click="call('useMainImage', { variation: @js($name) })">
+                            <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-uturn-left" x-on:click="call('useMainImage', { variation: {{ $jsName }} })">
                                 {{ __('filament-media-manager::media.picker.back_to_base') }}
                             </x-filament::button>
                         @endif
@@ -291,7 +295,7 @@
                                 size="xs"
                                 color="warning"
                                 icon="heroicon-o-arrow-path"
-                                x-on:click="$wire.mountAction('retryConversion', { conversion: {{ $conversion->id }} }, { schemaComponent: @js($key) })"
+                                x-on:click="$wire.mountAction('retryConversion', { conversion: {{ $conversion->id }} }, { schemaComponent: {{ (string) Js::from($key) }} })"
                             >
                                 {{ __('filament-media-manager::media.picker.retry') }}
                             </x-filament::button>

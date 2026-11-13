@@ -311,3 +311,14 @@ it('fits the stage to the image so the frame matches the picture, and rings the 
         ->and($css)->not->toContain('rgb(var(--primary-500))')
         ->and($css)->toContain('outline: 2px solid var(--primary-500)');
 });
+
+it('compiles every Alpine handler, including those passed to Blade components', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    MediaConversion::factory()->for($value, 'value')->create(['variation' => 'desktop', 'status' => ConversionStatus::Failed]);
+    MediaConversion::factory()->for($value, 'value')->create(['variation' => 'mobile', 'media_id' => Media::factory()->create()->id]);
+
+    // Blade does not compile @js() inside a component's attributes: it would reach the browser as is.
+    Livewire::test(RenderHarness::class, ['preset' => $value->id])
+        ->assertDontSee('@js(', escape: false)
+        ->assertSee('x-on:click="pick(&#039;mobile&#039;)"', escape: false);
+});
