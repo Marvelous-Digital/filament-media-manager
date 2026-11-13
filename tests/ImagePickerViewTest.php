@@ -127,26 +127,34 @@ it('shows the required formats as ratios before anything is picked', function ()
         ->assertSee('1500×900');
 });
 
-it('renders a card per variant with reframe and override actions', function () {
+it('renders a toolbar per variation with zoom, reset, another image, upload and retry', function () {
     $value = MediaFieldValue::factory()->for(Media::factory()->state(['width' => 2000, 'height' => 1000]), 'source')->create(['alt_text' => 'hi']);
     MediaConversion::factory()->for($value, 'value')->create(['variation' => 'desktop', 'status' => ConversionStatus::Failed]);
 
     Livewire::test(RenderHarness::class, ['preset' => $value->id])
         ->assertOk()
-        ->assertSee('Alt text')
-        ->assertSee('Reframe')
-        ->assertSee('Use different image')
+        ->assertSee('data-fmm-toolbar="desktop"', escape: false)
+        ->assertSee('data-fmm-toolbar="mobile"', escape: false)
+        ->assertSee('desktop · 5:3 · 1500×900')
         ->assertSee('Zoom')
-        ->assertSee('Retry');
+        ->assertSee('Reset')
+        ->assertSee('Use another image for desktop')
+        ->assertSee('Upload for mobile')
+        ->assertSee('Retry')
+        ->assertSee('Alt text')
+        ->assertDontSee('Reframe')
+        ->assertDontSee('fmm-variant', escape: false);
 });
 
-it('shows own-image controls only for overridden variants', function () {
+it('shows back to base and its own alt only for a variation with its own image', function () {
     $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
     MediaConversion::factory()->for($value, 'value')->create(['variation' => 'mobile', 'media_id' => Media::factory()->create()->id]);
 
     Livewire::test(RenderHarness::class, ['preset' => $value->id])
-        ->assertSee('Own image')
-        ->assertSee('Use main image');
+        ->assertSee('Back to base image')
+        ->assertSee('Alt text for mobile')
+        ->assertDontSee('Alt text for desktop')
+        ->assertDontSee('Retry');
 });
 
 it('renders the strip and stage when the source has no dimensions', function () {
@@ -227,7 +235,7 @@ it('hydrates a stored id set on the field by server code so edits are kept', fun
         ->call('switchTo', $german->id)
         ->assertSet('data.hero_image_id.id', $german->id)
         ->assertSet('data.hero_image_id.token', FieldValueToken::for($german->id))
-        ->assertSee('Reframe')
+        ->assertSee('data-fmm-toolbar="desktop"', escape: false)
         ->set('data.hero_image_id.alt', 'Bild')
         ->call('save')
         ->assertSet('saved.hero_image_id', $german->id);
@@ -241,7 +249,7 @@ it('renders a plain id the browser set instead of an empty field', function () {
 
     $livewire = Livewire::test(ImagePickerTranslatorHarness::class)
         ->set('data.hero_image_id', $value->id)
-        ->assertSee('Reframe')
+        ->assertSee('data-fmm-toolbar="desktop"', escape: false)
         ->assertDontSee('Required formats')
         ->assertSet('data.hero_image_id.media_id', $value->media_id)
         ->set('data.hero_image_id.alt', 'After')

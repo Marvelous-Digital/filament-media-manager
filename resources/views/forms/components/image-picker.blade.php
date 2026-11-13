@@ -24,7 +24,6 @@
             state: $wire.{{ $applyStateBindingModifiers("\$entangle('{$statePath}')") }},
             media: @js($media),
             targets: @js($variations),
-            open: null,
             // UI only, never saved: the variation being reframed on the stage, null for the base image.
             selected: @js(array_key_first($variations)),
             uploading: false,
@@ -238,6 +237,72 @@
                 @endif
             </div>
 
+            @foreach ($variations as $name => [$width, $height])
+                @php
+                    $isOverridden = filled($state['variants'][$name]['media_id'] ?? null);
+                    $conversion = $saved?->conversion($name);
+                @endphp
+
+                <div class="fmm-toolbar" data-fmm-toolbar="{{ $name }}" wire:key="fmm-toolbar-{{ $statePath }}-{{ $name }}" x-cloak x-show="selected === @js($name)">
+                    <p class="fmm-toolbar-title">{{ $name }} · {{ Ratio::reduce($width, $height) }} · {{ $width }}×{{ $height }}</p>
+
+                    <div class="fmm-zoom">
+                        <label class="fmm-zoom-label" for="fmm-zoom-{{ $statePath }}-{{ $name }}">
+                            {{ __('filament-media-manager::media.picker.zoom') }}
+                            <span class="fmm-zoom-value" x-text="`${Number(state.variants[@js($name)].zoom).toFixed(1)}×`"></span>
+                        </label>
+                        <input
+                            id="fmm-zoom-{{ $statePath }}-{{ $name }}"
+                            type="range"
+                            class="fmm-zoom-slider"
+                            min="1"
+                            max="5"
+                            step="0.1"
+                            x-model.number="state.variants[@js($name)].zoom"
+                            x-on:input="touch()"
+                        />
+                        <p class="fmm-zoom-warning" x-cloak x-show="overZoomed(@js($name))">
+                            {{ __('filament-media-manager::media.picker.zoom_warning') }}
+                        </p>
+                    </div>
+
+                    <div class="fmm-toolbar-actions">
+                        <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-uturn-left" x-on:click="Object.assign(state.variants[@js($name)], { focus_x: 0.5, focus_y: 0.5, zoom: 1 }); touch()">
+                            {{ __('filament-media-manager::media.picker.reset') }}
+                        </x-filament::button>
+                        <x-filament::button size="xs" color="gray" icon="heroicon-o-photo" x-on:click="pick(@js($name))">
+                            {{ __('filament-media-manager::media.picker.use_another_image_for', ['name' => $name]) }}
+                        </x-filament::button>
+                        <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-up-tray" x-on:click="$refs[@js('upload-' . $name)].click()" x-bind:disabled="uploading">
+                            {{ __('filament-media-manager::media.picker.upload_for', ['name' => $name]) }}
+                        </x-filament::button>
+                        @if ($isOverridden)
+                            <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-uturn-left" x-on:click="call('useMainImage', { variation: @js($name) })">
+                                {{ __('filament-media-manager::media.picker.back_to_base') }}
+                            </x-filament::button>
+                        @endif
+                        @if ($conversion?->status === ConversionStatus::Failed)
+                            <x-filament::button
+                                size="xs"
+                                color="warning"
+                                icon="heroicon-o-arrow-path"
+                                x-on:click="$wire.mountAction('retryConversion', { conversion: {{ $conversion->id }} }, { schemaComponent: @js($key) })"
+                            >
+                                {{ __('filament-media-manager::media.picker.retry') }}
+                            </x-filament::button>
+                        @endif
+                        <input type="file" accept="image/*" class="fmm-upload-input" x-ref="upload-{{ $name }}" x-on:change="upload(@js($name), $event.target.files); $event.target.value = null" />
+                    </div>
+
+                    @if ($isOverridden)
+                        <div class="fmm-picker-alt">
+                            <label for="fmm-alt-{{ $statePath }}-{{ $name }}">{{ __('filament-media-manager::media.picker.alt_text_for', ['name' => $name]) }}</label>
+                            <input id="fmm-alt-{{ $statePath }}-{{ $name }}" type="text" class="fi-input fmm-alt-input" x-model="state.variants[@js($name)].alt" x-on:input="touch()" />
+                        </div>
+                    @endif
+                </div>
+            @endforeach
+
             <div class="fmm-picker-alt">
                 <label for="fmm-alt-{{ $statePath }}">{{ __('filament-media-manager::media.picker.alt_text') }}</label>
                 <input id="fmm-alt-{{ $statePath }}" type="text" class="fi-input fmm-alt-input" x-model="state.alt" x-on:input="touch()" placeholder="{{ __('filament-media-manager::media.picker.alt_text_placeholder') }}" />
@@ -247,84 +312,6 @@
                 {{ __('filament-media-manager::media.picker.unsaved') }}
             </p>
 
-            <div class="fmm-variants">
-                @foreach ($variations as $name => [$width, $height])
-                    @php
-                        $variant = $state['variants'][$name] ?? [];
-                        $isOverridden = filled($variant['media_id'] ?? null);
-                        $conversion = $saved?->conversion($name);
-                    @endphp
-
-                    <div class="fmm-variant" wire:key="fmm-variant-{{ $statePath }}-{{ $name }}">
-                        <div class="fmm-variant-header">
-                            <span class="fmm-variant-name">{{ $name }} · {{ Ratio::reduce($width, $height) }}</span>
-                            @if ($isOverridden)
-                                <span class="fmm-variant-badge">{{ __('filament-media-manager::media.picker.own_image') }}</span>
-                            @endif
-                        </div>
-
-                        <div class="fmm-variant-status">
-                            @if ($conversion?->status === ConversionStatus::Failed)
-                                <x-filament::button
-                                    size="xs"
-                                    color="warning"
-                                    icon="heroicon-o-arrow-path"
-                                    x-on:click="$wire.mountAction('retryConversion', { conversion: {{ $conversion->id }} }, { schemaComponent: @js($key) })"
-                                >
-                                    {{ __('filament-media-manager::media.picker.retry') }}
-                                </x-filament::button>
-                            @elseif ($conversion?->status === ConversionStatus::Pending)
-                                <span class="fmm-variant-pending">{{ __('filament-media-manager::media.picker.generating') }}</span>
-                            @endif
-                        </div>
-
-                        <div class="fmm-variant-actions">
-                            <x-filament::button size="xs" color="gray" x-on:click="open = open === @js($name) ? null : @js($name)">
-                                {{ __('filament-media-manager::media.picker.reframe') }}
-                            </x-filament::button>
-                            <x-filament::button size="xs" color="gray" x-on:click="pick(@js($name))">
-                                {{ __('filament-media-manager::media.picker.use_different_image') }}
-                            </x-filament::button>
-                            <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-up-tray" x-on:click="$refs[@js('upload-' . $name)].click()" x-bind:disabled="uploading" :label-sr-only="true">
-                                {{ __('filament-media-manager::media.picker.upload_for_format') }}
-                            </x-filament::button>
-                            @if ($isOverridden)
-                                <x-filament::button size="xs" color="gray" x-on:click="call('useMainImage', { variation: @js($name) })">
-                                    {{ __('filament-media-manager::media.picker.use_main_image') }}
-                                </x-filament::button>
-                            @endif
-                            <input type="file" accept="image/*" class="fmm-upload-input" x-ref="upload-{{ $name }}" x-on:change="upload(@js($name), $event.target.files); $event.target.value = null" />
-                        </div>
-
-                        @if ($isOverridden)
-                            <div class="fmm-picker-alt">
-                                <label for="fmm-alt-{{ $statePath }}-{{ $name }}">{{ __('filament-media-manager::media.picker.alt_text_for_format') }}</label>
-                                <input id="fmm-alt-{{ $statePath }}-{{ $name }}" type="text" class="fi-input fmm-alt-input" x-model="state.variants[@js($name)].alt" x-on:input="touch()" />
-                            </div>
-                        @endif
-
-                            <div class="fmm-zoom">
-                                <label class="fmm-zoom-label" for="fmm-zoom-{{ $statePath }}-{{ $name }}">
-                                    {{ __('filament-media-manager::media.picker.zoom') }}
-                                    <span class="fmm-zoom-value" x-text="`${Number(state.variants[@js($name)].zoom).toFixed(1)}×`"></span>
-                                </label>
-                                <input
-                                    id="fmm-zoom-{{ $statePath }}-{{ $name }}"
-                                    type="range"
-                                    class="fmm-zoom-slider"
-                                    min="1"
-                                    max="5"
-                                    step="0.1"
-                                    x-model.number="state.variants[@js($name)].zoom"
-                                    x-on:input="touch()"
-                                />
-                                <p class="fmm-zoom-warning" x-cloak x-show="overZoomed(@js($name))">
-                                    {{ __('filament-media-manager::media.picker.zoom_warning') }}
-                                </p>
-                            </div>
-                    </div>
-                @endforeach
-            </div>
         @endif
     </div>
 </x-dynamic-component>

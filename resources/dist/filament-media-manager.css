@@ -67,6 +67,9 @@
 .fmm-strip-spinner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgb(255 255 255 / 0.55); }
 .dark .fmm-strip-spinner { background: rgb(0 0 0 / 0.45); }
 .fmm-strip-spinner-icon { width: 1rem; height: 1rem; }
+.fmm-toolbar { display: flex; flex-direction: column; gap: 0.5rem; }
+.fmm-toolbar-title { font-size: 0.875rem; font-weight: 600; }
+.fmm-toolbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .fmm-picker-actions { display: flex; gap: 0.5rem; }
 .fmm-picker-alt { display: flex; flex-direction: column; gap: 0.25rem; }
 .fmm-picker-alt label { font-size: 0.8125rem; font-weight: 500; color: rgb(107 114 128); }
@@ -93,18 +96,6 @@
 .fmm-format-size { font-size: 0.6875rem; color: rgb(107 114 128); font-variant-numeric: tabular-nums; }
 .fmm-unsaved { font-size: 0.75rem; color: rgb(217 119 6); }
 .dark .fmm-unsaved { color: rgb(251 191 36); }
-.fmm-variants { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 1rem; align-items: start; }
-.fmm-variant { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid rgb(229 231 235); }
-.dark .fmm-variant { border-color: rgb(63 63 70); }
-.fmm-variant-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-.fmm-variant-name { font-size: 0.8125rem; font-weight: 500; }
-.fmm-variant-badge { font-size: 0.6875rem; font-weight: 500; padding: 0.125rem 0.5rem; border-radius: 9999px; background: rgb(219 234 254); color: rgb(29 78 216); }
-.dark .fmm-variant-badge { background: rgba(59, 130, 246, 0.2); color: rgb(147 197 253); }
-.fmm-variant-status { min-height: 1.25rem; font-size: 0.75rem; }
-.fmm-variant-pending { color: rgb(107 114 128); }
-.fmm-variant-ready { color: rgb(22 163 74); }
-.dark .fmm-variant-ready { color: rgb(74 222 128); }
-.fmm-variant-actions { display: flex; flex-wrap: wrap; gap: 0.375rem; }
 
 /* Images picker field */
 .fmm-images-picker { display: flex; flex-direction: column; gap: 0.75rem; }
