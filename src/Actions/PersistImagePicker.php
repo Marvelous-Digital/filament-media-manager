@@ -3,6 +3,8 @@
 namespace MarvelousDigital\FilamentMediaManager\Actions;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateConversion;
 use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
@@ -23,9 +25,15 @@ class PersistImagePicker
      * pass it state the browser could have written without running ImagePickerState::verified()
      * first, as the ImagePicker field does on save.
      *
+     * Saving a copy of a stored row (copy-on-write): pass that row as $replaces, and a new
+     * conversion whose crop is the same as the stored one copies its file instead of waiting for
+     * it to be generated again. $generateNow generates the other new or changed conversions during
+     * the save (after the transaction commits) instead of on the queue, so a page rendered right
+     * after the save already has every crop.
+     *
      * @param  array<string, array{0: int, 1: int}>  $variations
      */
-    public function execute(mixed $state, array $variations): ?int
+    public function execute(mixed $state, array $variations, ?int $replaces = null, bool $generateNow = false): ?int
     {
         if (! is_array($state)) {
             return is_numeric($state) ? (int) $state : null;
@@ -71,6 +79,9 @@ class PersistImagePicker
         $baseFocusY = $value->focus_y ?? 0.5;
 
         $conversions = $value->conversions->keyBy('variation');
+        $replaced = $replaces === null || $replaces === $value->id
+            ? null
+            : MediaFieldValue::query()->with('conversions')->find($replaces);
 
         foreach ($variations as $name => [$width, $height]) {
             $variant = [...ImagePickerState::defaultVariant(), ...($state['variants'][$name] ?? [])];
@@ -102,8 +113,14 @@ class PersistImagePicker
 
             $conversion->save();
 
+            if ($needsRegeneration && $replaced !== null && $this->copyCrop($replaced, $value, $conversion)) {
+                $needsRegeneration = false;
+            }
+
             if ($needsRegeneration) {
-                GenerateConversion::dispatchFor($conversion);
+                $generateNow
+                    ? DB::afterCommit(fn () => (new GenerateConversion($conversion))->handle())
+                    : GenerateConversion::dispatchFor($conversion);
             }
         }
 
@@ -113,6 +130,41 @@ class PersistImagePicker
         $conversions->toBase()->except(array_keys($variations))->each->delete();
 
         return $value->id;
+    }
+
+    /**
+     * Give a new conversion the file of the replaced row's conversion when both crop the same
+     * image the same way. False when there is nothing to copy: the crop is generated instead.
+     */
+    private function copyCrop(MediaFieldValue $replaced, MediaFieldValue $value, MediaConversion $conversion): bool
+    {
+        $previous = $replaced->conversion($conversion->variation);
+
+        $same = $previous !== null
+            && $previous->status === ConversionStatus::Completed
+            && $previous->path !== null
+            && (int) $replaced->media_id === (int) $value->media_id
+            && $previous->media_id === $conversion->media_id
+            && $previous->width === $conversion->width
+            && $previous->height === $conversion->height
+            && round((float) $previous->focus_x, 6) === round((float) $conversion->focus_x, 6)
+            && round((float) $previous->focus_y, 6) === round((float) $conversion->focus_y, 6)
+            && round((float) $previous->zoom, 6) === round((float) $conversion->zoom, 6);
+
+        if (! $same) {
+            return false;
+        }
+
+        $disk = Storage::disk($value->source->disk);
+        $path = $value->directory() . '/' . basename($previous->path);
+
+        if (! $disk->exists($previous->path) || ! $disk->copy($previous->path, $path)) {
+            return false;
+        }
+
+        $conversion->update(['path' => $path, 'status' => ConversionStatus::Completed]);
+
+        return true;
     }
 
     private function clamp(float $value, float $min, float $max): float
