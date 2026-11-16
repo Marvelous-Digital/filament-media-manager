@@ -353,3 +353,17 @@ it('offers the base focus point only to variations using the base image, and res
     expect($toolbar('desktop'))->toContain('Use base focus point')->not->toContain('>Reset')
         ->and($toolbar('mobile'))->toContain('Reset')->not->toContain('Use base focus point');
 });
+
+it('renders the alt texts as Filament inputs with Filament labels', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    MediaConversion::factory()->for($value, 'value')->create(['variation' => 'mobile', 'media_id' => Media::factory()->create()->id]);
+
+    $html = Livewire::test(RenderHarness::class, ['preset' => $value->id])->html();
+    $override = str($html)->after('for="fmm-alt-data.hero_image_id-mobile"')->before('</div>')->toString();
+    $field = fn (string $id): string => str($html)->before('id="' . $id . '"')->afterLast('<div class="fmm-picker-alt')->toString();
+
+    expect($field('fmm-alt-data.hero_image_id-mobile'))->toContain('fi-fo-field-label')->toContain('fi-input-wrp')
+        ->and($field('fmm-alt-data.hero_image_id'))->toContain('fi-fo-field-label')->toContain('fi-input-wrp')
+        ->and(html_entity_decode($html, ENT_QUOTES))->toContain("x-model=\"state.variants['mobile'].alt\"")
+        ->and($override)->toContain('Alt text for mobile');
+});

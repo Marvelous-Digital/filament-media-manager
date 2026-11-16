@@ -344,16 +344,24 @@
 
                     @if ($isOverridden)
                         <div class="fmm-picker-alt">
-                            <label for="fmm-alt-{{ $statePath }}-{{ $name }}">{{ __('filament-media-manager::media.picker.alt_text_for', ['name' => $name]) }}</label>
-                            <input id="fmm-alt-{{ $statePath }}-{{ $name }}" type="text" class="fi-input fmm-alt-input" x-model="state.variants[@js($name)].alt" x-on:input="touch()" />
+                            <label class="fi-fo-field-label" for="fmm-alt-{{ $statePath }}-{{ $name }}">
+                                <span class="fi-fo-field-label-content">{{ __('filament-media-manager::media.picker.alt_text_for', ['name' => $name]) }}</span>
+                            </label>
+                            <x-filament::input.wrapper>
+                                <x-filament::input id="fmm-alt-{{ $statePath }}-{{ $name }}" type="text" x-model="state.variants[{{ $jsName }}].alt" x-on:input="touch()" />
+                            </x-filament::input.wrapper>
                         </div>
                     @endif
                 </div>
             @endforeach
 
             <div class="fmm-picker-alt">
-                <label for="fmm-alt-{{ $statePath }}">{{ __('filament-media-manager::media.picker.alt_text') }}</label>
-                <input id="fmm-alt-{{ $statePath }}" type="text" class="fi-input fmm-alt-input" x-model="state.alt" x-on:input="touch()" placeholder="{{ __('filament-media-manager::media.picker.alt_text_placeholder') }}" />
+                <label class="fi-fo-field-label" for="fmm-alt-{{ $statePath }}">
+                    <span class="fi-fo-field-label-content">{{ __('filament-media-manager::media.picker.alt_text') }}</span>
+                </label>
+                <x-filament::input.wrapper>
+                    <x-filament::input id="fmm-alt-{{ $statePath }}" type="text" x-model="state.alt" x-on:input="touch()" :placeholder="__('filament-media-manager::media.picker.alt_text_placeholder')" />
+                </x-filament::input.wrapper>
             </div>
 
             <p class="fmm-unsaved" x-cloak x-show="state?.dirty">
