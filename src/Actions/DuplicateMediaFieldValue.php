@@ -67,6 +67,8 @@ class DuplicateMediaFieldValue
         $copy = MediaFieldValue::create([
             'media_id' => $source->media_id,
             'alt_text' => $this->alt($source->alt_text, $mapAlt),
+            'focus_x' => $source->focus_x,
+            'focus_y' => $source->focus_y,
             'created_by' => Auth::id(),
         ]);
 
@@ -79,6 +81,7 @@ class DuplicateMediaFieldValue
                 'height' => $conversion->height,
                 'focus_x' => $conversion->focus_x,
                 'focus_y' => $conversion->focus_y,
+                'custom_focus' => $conversion->custom_focus,
                 'zoom' => $conversion->zoom,
                 'status' => ConversionStatus::Pending,
             ]);

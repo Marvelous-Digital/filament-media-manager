@@ -42,6 +42,7 @@ it('updates the existing row in place and only regenerates changed variants', fu
     $state = ImagePickerState::fromStoredValue($id, $variations);
     $state['alt'] = 'Edited';
     $state['variants']['mobile']['focus_x'] = 0.2;
+    $state['variants']['mobile']['custom'] = true;
 
     expect(persist($state, $variations))->toBe($id);
 
@@ -94,7 +95,7 @@ it('stores override image and alt, and drops alt without an override', function 
 
 it('clamps focus and zoom', function () use ($variations) {
     $state = ImagePickerState::withMainImage(null, Media::factory()->create(), $variations);
-    $state['variants']['desktop'] = [...$state['variants']['desktop'], 'focus_x' => -1, 'focus_y' => 5, 'zoom' => 12];
+    $state['variants']['desktop'] = [...$state['variants']['desktop'], 'focus_x' => -1, 'focus_y' => 5, 'zoom' => 12, 'custom' => true];
     $state['variants']['mobile']['zoom'] = 0.2;
 
     $value = MediaFieldValue::with('conversions')->find(persist($state, $variations));

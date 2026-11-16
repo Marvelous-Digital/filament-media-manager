@@ -196,7 +196,7 @@ it('persists on save and writes the new id back into state', function () {
 
     $livewire = Livewire::test(ImagePickerFormHarness::class);
     callPicker($livewire, 'selectImage', ['target' => 'main', 'mediaId' => $media->id]);
-    $livewire->set('data.hero.variants.desktop.focus_x', 0.25)->call('save');
+    $livewire->set('data.hero.variants.desktop.focus_x', 0.25)->set('data.hero.variants.desktop.custom', true)->call('save');
 
     $value = MediaFieldValue::with('conversions')->sole();
     $livewire->assertSet('saved.hero', $value->id)

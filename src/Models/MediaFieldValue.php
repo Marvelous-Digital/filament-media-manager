@@ -15,6 +15,8 @@ use Throwable;
  * @property int $id
  * @property int $media_id
  * @property string|null $alt_text
+ * @property float $focus_x
+ * @property float $focus_y
  * @property int|null $created_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -25,7 +27,15 @@ class MediaFieldValue extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['media_id', 'alt_text', 'created_by'];
+    protected $fillable = ['media_id', 'alt_text', 'focus_x', 'focus_y', 'created_by'];
+
+    protected function casts(): array
+    {
+        return [
+            'focus_x' => 'float',
+            'focus_y' => 'float',
+        ];
+    }
 
     public function getTable(): string
     {

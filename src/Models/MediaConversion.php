@@ -20,6 +20,7 @@ use Throwable;
  * @property float $focus_x
  * @property float $focus_y
  * @property float $zoom
+ * @property bool $custom_focus
  * @property string|null $path
  * @property ConversionStatus $status
  * @property int|null $media_id
@@ -35,7 +36,7 @@ class MediaConversion extends Model
 
     protected $fillable = [
         'media_field_value_id', 'variation', 'width', 'height',
-        'focus_x', 'focus_y', 'zoom', 'path', 'status', 'media_id', 'alt_text',
+        'focus_x', 'focus_y', 'custom_focus', 'zoom', 'path', 'status', 'media_id', 'alt_text',
     ];
 
     public function getTable(): string
@@ -52,6 +53,7 @@ class MediaConversion extends Model
             'focus_x' => 'float',
             'focus_y' => 'float',
             'zoom' => 'float',
+            'custom_focus' => 'boolean',
             'media_id' => 'integer',
         ];
     }
