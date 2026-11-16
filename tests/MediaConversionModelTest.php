@@ -137,3 +137,13 @@ it('deletes its generated file when the conversion is deleted', function () {
 
     Storage::disk('public')->assertMissing('media/conversions/9/hero-abcd1234.webp');
 });
+
+it('falls back to its own image\'s library alt text before the main one', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create(['alt_text' => 'Main alt']);
+
+    $described = MediaConversion::factory()->for($value, 'value')->create(['variation' => 'a', 'alt_text' => null, 'media_id' => Media::factory()->create(['alt_text' => 'Library alt'])->id]);
+    $undescribed = MediaConversion::factory()->for($value, 'value')->create(['variation' => 'b', 'alt_text' => null, 'media_id' => Media::factory()->create(['alt_text' => null])->id]);
+
+    expect($described->effectiveAltText())->toBe('Library alt')
+        ->and($undescribed->effectiveAltText())->toBe('Main alt');
+});

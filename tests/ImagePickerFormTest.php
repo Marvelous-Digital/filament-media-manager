@@ -178,6 +178,21 @@ it('overrides and resets a single variant', function () {
     $livewire->assertSet('data.hero.variants.mobile.media_id', null);
 });
 
+it('puts a variation back on the base image when the browser state has no base focus point', function () {
+    $livewire = Livewire::test(ImagePickerFormHarness::class);
+    callPicker($livewire, 'selectImage', ['target' => 'main', 'mediaId' => Media::factory()->create()->id]);
+    callPicker($livewire, 'selectImage', ['target' => 'mobile', 'mediaId' => Media::factory()->create()->id]);
+    $state = $livewire->get('data.hero');
+    unset($state['focus_x'], $state['focus_y']);
+    $livewire->set('data.hero', $state);
+
+    callPicker($livewire, 'useMainImage', ['variation' => 'mobile']);
+
+    $livewire->assertSet('data.hero.variants.mobile.media_id', null)
+        ->assertSet('data.hero.variants.mobile.focus_x', 0.5)
+        ->assertSet('data.hero.variants.mobile.custom', false);
+});
+
 it('uploads straight into the field and selects the new image', function () {
     Storage::fake('public');
 
@@ -196,7 +211,7 @@ it('persists on save and writes the new id back into state', function () {
 
     $livewire = Livewire::test(ImagePickerFormHarness::class);
     callPicker($livewire, 'selectImage', ['target' => 'main', 'mediaId' => $media->id]);
-    $livewire->set('data.hero.variants.desktop.focus_x', 0.25)->call('save');
+    $livewire->set('data.hero.variants.desktop.focus_x', 0.25)->set('data.hero.variants.desktop.custom', true)->call('save');
 
     $value = MediaFieldValue::with('conversions')->sole();
     $livewire->assertSet('saved.hero', $value->id)

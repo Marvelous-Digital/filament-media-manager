@@ -23,7 +23,7 @@ it('hydrates a saved value and syncs declared variations', function () use ($var
         ->and(array_keys($state['variants']))->toBe(['desktop', 'mobile'])
         ->and($state['variants']['desktop'])->toBe(ImagePickerState::defaultVariant())
         ->and($state['variants']['mobile'])->toBe([
-            'media_id' => $override->id, 'alt' => 'Own', 'focus_x' => 0.2, 'focus_y' => 0.3, 'zoom' => 2.0,
+            'media_id' => $override->id, 'alt' => 'Own', 'focus_x' => 0.2, 'focus_y' => 0.3, 'zoom' => 2.0, 'custom' => true,
         ]);
 });
 
@@ -51,7 +51,7 @@ it('picks a main image, copying alt and resetting non-overridden variants', func
     $newMain = Media::factory()->create(['alt_text' => 'New main']);
     $state = ['id' => 5, 'media_id' => 7, 'alt' => 'Old', 'dirty' => false, 'variants' => [
         'desktop' => ['media_id' => null, 'alt' => null, 'focus_x' => 0.1, 'focus_y' => 0.9, 'zoom' => 3.0],
-        'mobile' => ['media_id' => $override->id, 'alt' => 'Own', 'focus_x' => 0.2, 'focus_y' => 0.2, 'zoom' => 2.0],
+        'mobile' => ['media_id' => $override->id, 'alt' => 'Own', 'focus_x' => 0.2, 'focus_y' => 0.2, 'zoom' => 2.0, 'custom' => true],
     ]];
 
     $next = ImagePickerState::withMainImage($state, $newMain, $variations);
@@ -94,7 +94,7 @@ it('removes an unsaved image entirely and marks a saved one for deletion', funct
     expect(ImagePickerState::withoutImage(null))->toBeNull()
         ->and(ImagePickerState::withoutImage(['id' => null, 'media_id' => 3]))->toBeNull()
         ->and(ImagePickerState::withoutImage(['id' => 5, 'media_id' => 3]))
-        ->toBe(['id' => 5, 'token' => null, 'media_id' => null, 'alt' => null, 'dirty' => true, 'variants' => []])
+        ->toBe(['id' => 5, 'token' => null, 'media_id' => null, 'alt' => null, 'focus_x' => 0.5, 'focus_y' => 0.5, 'decorative' => false, 'dirty' => true, 'variants' => []])
         ->and(ImagePickerState::withoutImage(['id' => 5, 'token' => 'abc', 'media_id' => 3])['token'])->toBe('abc');
 });
 

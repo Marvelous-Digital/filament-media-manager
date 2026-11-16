@@ -51,13 +51,32 @@ class PersistImagePicker
         $value->fill([
             'media_id' => (int) $state['media_id'],
             'alt_text' => $state['alt'] ?? null,
-        ])->save();
+        ]);
+
+        // State without the flag (the ImagesPicker sends none) keeps the saved one.
+        if (array_key_exists('decorative', $state)) {
+            $value->decorative = filter_var($state['decorative'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        // State without a base focus (the ImagesPicker sends none) keeps the saved one.
+        if (array_key_exists('focus_x', $state) || array_key_exists('focus_y', $state)) {
+            $value->fill([
+                'focus_x' => $this->clamp((float) ($state['focus_x'] ?? 0.5), 0.0, 1.0),
+                'focus_y' => $this->clamp((float) ($state['focus_y'] ?? 0.5), 0.0, 1.0),
+            ]);
+        }
+
+        $value->save();
+        $baseFocusX = $value->focus_x ?? 0.5;
+        $baseFocusY = $value->focus_y ?? 0.5;
 
         $conversions = $value->conversions->keyBy('variation');
 
         foreach ($variations as $name => [$width, $height]) {
             $variant = [...ImagePickerState::defaultVariant(), ...($state['variants'][$name] ?? [])];
             $overrideId = filled($variant['media_id']) ? (int) $variant['media_id'] : null;
+            // A variation with its own image always has its own focus: the base one belongs to another picture.
+            $custom = $overrideId !== null || filter_var($variant['custom'], FILTER_VALIDATE_BOOLEAN);
 
             /** @var MediaConversion $conversion */
             $conversion = $conversions->get($name) ?? $value->conversions()->make(['variation' => $name]);
@@ -67,8 +86,9 @@ class PersistImagePicker
                 'alt_text' => $overrideId !== null ? ($variant['alt'] ?? null) : null,
                 'width' => $width,
                 'height' => $height,
-                'focus_x' => $this->clamp((float) $variant['focus_x'], 0.0, 1.0),
-                'focus_y' => $this->clamp((float) $variant['focus_y'], 0.0, 1.0),
+                'focus_x' => $custom ? $this->clamp((float) $variant['focus_x'], 0.0, 1.0) : $baseFocusX,
+                'focus_y' => $custom ? $this->clamp((float) $variant['focus_y'], 0.0, 1.0) : $baseFocusY,
+                'custom_focus' => $custom,
                 'zoom' => $this->clamp((float) $variant['zoom'], 1.0, 5.0),
             ]);
 

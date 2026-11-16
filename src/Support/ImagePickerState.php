@@ -11,17 +11,20 @@ use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
  * A saved value carries a FieldValueToken next to its id; verified() drops an id the browser
  * could have forged before the state is persisted.
  *
- * @phpstan-type Variant array{media_id: int|null, alt: string|null, focus_x: float, focus_y: float, zoom: float}
- * @phpstan-type State array{id: int|null, token: string|null, media_id: int|null, alt: string|null, dirty: bool, variants: array<string, Variant>}
+ * The base image has a focus point that every variation follows unless it is `custom` (moved
+ * on its own, or using its own image).
+ *
+ * @phpstan-type Variant array{media_id: int|null, alt: string|null, focus_x: float, focus_y: float, zoom: float, custom: bool}
+ * @phpstan-type State array{id: int|null, token: string|null, media_id: int|null, alt: string|null, focus_x: float, focus_y: float, decorative: bool, dirty: bool, variants: array<string, Variant>}
  */
 class ImagePickerState
 {
     /**
      * @return Variant
      */
-    public static function defaultVariant(): array
+    public static function defaultVariant(float $focusX = 0.5, float $focusY = 0.5): array
     {
-        return ['media_id' => null, 'alt' => null, 'focus_x' => 0.5, 'focus_y' => 0.5, 'zoom' => 1.0];
+        return ['media_id' => null, 'alt' => null, 'focus_x' => $focusX, 'focus_y' => $focusY, 'zoom' => 1.0, 'custom' => false];
     }
 
     /**
@@ -54,12 +57,13 @@ class ImagePickerState
         foreach (array_keys($variations) as $name) {
             $conversion = $value->conversion($name);
 
-            $variants[$name] = $conversion === null ? self::defaultVariant() : [
+            $variants[$name] = $conversion === null ? self::defaultVariant($value->focus_x, $value->focus_y) : [
                 'media_id' => $conversion->media_id,
                 'alt' => $conversion->alt_text,
                 'focus_x' => $conversion->focus_x,
                 'focus_y' => $conversion->focus_y,
                 'zoom' => $conversion->zoom,
+                'custom' => $conversion->custom_focus || $conversion->media_id !== null,
             ];
         }
 
@@ -68,6 +72,9 @@ class ImagePickerState
             'token' => FieldValueToken::for($value->id),
             'media_id' => $value->media_id,
             'alt' => $value->alt_text,
+            'focus_x' => $value->focus_x,
+            'focus_y' => $value->focus_y,
+            'decorative' => $value->decorative,
             'dirty' => false,
             'variants' => $variants,
         ];
@@ -80,11 +87,13 @@ class ImagePickerState
      */
     public static function syncVariants(array $state, array $variations): array
     {
+        $focusX = self::focusOr($state['focus_x'] ?? null);
+        $focusY = self::focusOr($state['focus_y'] ?? null);
         $variants = [];
 
         foreach (array_keys($variations) as $name) {
             $variant = $state['variants'][$name] ?? [];
-            $variants[$name] = [...self::defaultVariant(), ...(is_array($variant) ? $variant : [])];
+            $variants[$name] = [...self::defaultVariant($focusX, $focusY), ...(is_array($variant) ? $variant : [])];
         }
 
         return [
@@ -92,6 +101,9 @@ class ImagePickerState
             'token' => $state['token'] ?? null,
             'media_id' => $state['media_id'] ?? null,
             'alt' => $state['alt'] ?? null,
+            'focus_x' => $focusX,
+            'focus_y' => $focusY,
+            'decorative' => filter_var($state['decorative'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'dirty' => (bool) ($state['dirty'] ?? false),
             'variants' => $variants,
         ];
@@ -112,7 +124,7 @@ class ImagePickerState
             }
         }
 
-        return [...$state, 'media_id' => $media->id, 'alt' => $media->alt_text, 'dirty' => true];
+        return [...$state, 'media_id' => $media->id, 'alt' => $media->alt_text, 'focus_x' => 0.5, 'focus_y' => 0.5, 'dirty' => true];
     }
 
     /**
@@ -125,7 +137,7 @@ class ImagePickerState
             return $state;
         }
 
-        $state['variants'][$variation] = [...self::defaultVariant(), 'media_id' => $media->id, 'alt' => $media->alt_text];
+        $state['variants'][$variation] = [...self::defaultVariant(), 'media_id' => $media->id, 'alt' => $media->alt_text, 'custom' => true];
         $state['dirty'] = true;
 
         return $state;
@@ -141,7 +153,7 @@ class ImagePickerState
             return $state;
         }
 
-        $state['variants'][$variation] = self::defaultVariant();
+        $state['variants'][$variation] = self::defaultVariant($state['focus_x'], $state['focus_y']);
         $state['dirty'] = true;
 
         return $state;
@@ -160,7 +172,7 @@ class ImagePickerState
             return null;
         }
 
-        return ['id' => (int) $state['id'], 'token' => $state['token'] ?? null, 'media_id' => null, 'alt' => null, 'dirty' => true, 'variants' => []];
+        return ['id' => (int) $state['id'], 'token' => $state['token'] ?? null, 'media_id' => null, 'alt' => null, 'focus_x' => 0.5, 'focus_y' => 0.5, 'decorative' => false, 'dirty' => true, 'variants' => []];
     }
 
     /**
@@ -208,6 +220,7 @@ class ImagePickerState
                 'focus_x' => is_numeric($variant['focus_x'] ?? null) ? (float) $variant['focus_x'] : 0.5,
                 'focus_y' => is_numeric($variant['focus_y'] ?? null) ? (float) $variant['focus_y'] : 0.5,
                 'zoom' => is_numeric($variant['zoom'] ?? null) ? (float) $variant['zoom'] : 1.0,
+                'custom' => filter_var($variant['custom'] ?? false, FILTER_VALIDATE_BOOLEAN),
             ];
         }
 
@@ -218,9 +231,17 @@ class ImagePickerState
             'token' => $token,
             'media_id' => $mediaId,
             'alt' => is_scalar($alt) ? (string) $alt : null,
+            'focus_x' => self::focusOr($state['focus_x'] ?? null),
+            'focus_y' => self::focusOr($state['focus_y'] ?? null),
+            'decorative' => filter_var($state['decorative'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'dirty' => (bool) ($state['dirty'] ?? false),
             'variants' => $mediaId === null ? [] : $variants,
         ];
+    }
+
+    private static function focusOr(mixed $value): float
+    {
+        return is_numeric($value) ? (float) $value : 0.5;
     }
 
     private static function idOrNull(mixed $value): ?int
