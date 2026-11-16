@@ -345,17 +345,18 @@
                     @if ($isOverridden)
                         <div class="fmm-picker-alt">
                             <label class="fi-fo-field-label" for="fmm-alt-{{ $statePath }}-{{ $name }}">
-                                <span class="fi-fo-field-label-content">{{ __('filament-media-manager::media.picker.alt_text_for', ['name' => $name]) }}</span>
+                                <span class="fi-fo-field-label-content">{{ __('filament-media-manager::media.picker.alt_text') }}</span>
                             </label>
                             <x-filament::input.wrapper>
-                                <x-filament::input id="fmm-alt-{{ $statePath }}-{{ $name }}" type="text" x-model="state.variants[{{ $jsName }}].alt" x-on:input="touch()" />
+                                <x-filament::input id="fmm-alt-{{ $statePath }}-{{ $name }}" type="text" x-model="state.variants[{{ $jsName }}].alt" x-on:input="touch()" :placeholder="$media[$state['variants'][$name]['media_id']]['alt'] ?? __('filament-media-manager::media.picker.alt_text_placeholder')" />
                             </x-filament::input.wrapper>
                         </div>
                     @endif
                 </div>
             @endforeach
 
-            <div class="fmm-picker-alt">
+            {{-- One alt text field at a time: a variation with its own image is described by its own field above. --}}
+            <div class="fmm-picker-alt" x-show="active === null || ! state.variants[active]?.media_id">
                 <label class="fi-fo-field-label" for="fmm-alt-{{ $statePath }}">
                     <span class="fi-fo-field-label-content">{{ __('filament-media-manager::media.picker.alt_text') }}</span>
                 </label>

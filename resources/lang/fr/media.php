@@ -87,7 +87,6 @@ return [
         'use_another_image_for' => 'Utiliser une autre image pour :name',
         'upload_for' => 'Téléverser pour :name',
         'back_to_base' => 'Revenir à l’image de base',
-        'alt_text_for' => 'Texte alternatif pour :name',
         'pick_from_library' => 'Choisir dans la médiathèque',
         'change' => 'Modifier',
         'remove' => 'Retirer',

@@ -247,6 +247,7 @@ class ImagePicker extends Field
                 'url' => $media->url(),
                 'width' => $media->width,
                 'height' => $media->height,
+                'alt' => $media->alt_text,
             ]])
             ->all();
     }

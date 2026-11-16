@@ -87,7 +87,6 @@ return [
         'use_another_image_for' => 'Use another image for :name',
         'upload_for' => 'Upload for :name',
         'back_to_base' => 'Back to base image',
-        'alt_text_for' => 'Alt text for :name',
         'pick_from_library' => 'Pick from library',
         'change' => 'Change',
         'remove' => 'Remove',

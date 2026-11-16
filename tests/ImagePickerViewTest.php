@@ -152,8 +152,8 @@ it('shows back to base and its own alt only for a variation with its own image',
 
     Livewire::test(RenderHarness::class, ['preset' => $value->id])
         ->assertSee('Back to base image')
-        ->assertSee('Alt text for mobile')
-        ->assertDontSee('Alt text for desktop')
+        ->assertSee('id="fmm-alt-data.hero_image_id-mobile"', escape: false)
+        ->assertDontSee('id="fmm-alt-data.hero_image_id-desktop"', escape: false)
         ->assertDontSee('Retry');
 });
 
@@ -365,5 +365,19 @@ it('renders the alt texts as Filament inputs with Filament labels', function () 
     expect($field('fmm-alt-data.hero_image_id-mobile'))->toContain('fi-fo-field-label')->toContain('fi-input-wrp')
         ->and($field('fmm-alt-data.hero_image_id'))->toContain('fi-fo-field-label')->toContain('fi-input-wrp')
         ->and(html_entity_decode($html, ENT_QUOTES))->toContain("x-model=\"state.variants['mobile'].alt\"")
-        ->and($override)->toContain('Alt text for mobile');
+        ->and($override)->toContain('Alt text');
+});
+
+it('shows a single alt text field for a variation with its own image, defaulting to that image\'s alt', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    MediaConversion::factory()->for($value, 'value')->create(['variation' => 'mobile', 'media_id' => Media::factory()->create(['alt_text' => 'Speaker on stage'])->id]);
+
+    $html = html_entity_decode(Livewire::test(RenderHarness::class, ['preset' => $value->id])->html(), ENT_QUOTES);
+    $base = str($html)->before('id="fmm-alt-data.hero_image_id"')->afterLast('<div class="fmm-picker-alt')->toString();
+    $own = str($html)->before('id="fmm-alt-data.hero_image_id-mobile"')->afterLast('<div class="fmm-picker-alt')->toString();
+
+    // The base alt hides while a variation with its own image is on the stage.
+    expect($base)->toContain('x-show="active === null || ! state.variants[active]?.media_id"')
+        ->and($own)->not->toContain('Alt text for')
+        ->and($html)->toContain('placeholder="Speaker on stage"');
 });

@@ -94,6 +94,11 @@ class MediaConversion extends Model
             return $this->alt_text;
         }
 
+        // A variation with its own image left blank is described by that image's library alt text.
+        if ($this->media_id !== null && filled($this->source?->alt_text)) {
+            return $this->source->alt_text;
+        }
+
         return $this->value->alt_text;
     }
 
