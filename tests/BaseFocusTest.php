@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use MarvelousDigital\FilamentMediaManager\Actions\DuplicateMediaFieldValue;
@@ -149,4 +150,21 @@ it('marks already reframed conversions as custom when migrating existing data', 
     expect(DB::table('media_manager_conversions')->orderBy('variation')->pluck('custom_focus', 'variation')->map(fn ($flag) => (bool) $flag)->all())
         ->toBe(['centred' => false, 'moved' => true, 'own' => true])
         ->and((float) DB::table('media_manager_field_values')->value('focus_x'))->toBe(0.5);
+});
+
+it('opens a row read before the base focus columns were migrated', function () use ($variations) {
+    $value = MediaFieldValue::factory()->create();
+    MediaConversion::factory()->for($value, 'value')->create(['variation' => 'desktop']);
+    $value = MediaFieldValue::with('conversions')->find($value->id);
+    // As the row of a database without the base focus and decorative migrations.
+    $value->setRawAttributes(Arr::except($value->getAttributes(), ['focus_x', 'focus_y', 'decorative']), true);
+    $value->conversions->each(fn (MediaConversion $conversion) => $conversion->setRawAttributes(Arr::except($conversion->getAttributes(), ['custom_focus']), true));
+
+    $state = ImagePickerState::fromValue($value, $variations);
+
+    expect($state['focus_x'])->toBe(0.5)
+        ->and($state['focus_y'])->toBe(0.5)
+        ->and($state['decorative'])->toBeFalse()
+        ->and($state['variants']['desktop']['custom'])->toBeFalse()
+        ->and($state['variants']['mobile']['focus_x'])->toBe(0.5);
 });

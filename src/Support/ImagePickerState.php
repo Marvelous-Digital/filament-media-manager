@@ -52,18 +52,22 @@ class ImagePickerState
      */
     public static function fromValue(MediaFieldValue $value, array $variations): array
     {
+        // A database not yet migrated for the base focus point and decorative flag has no such
+        // columns: the image opens centred and not decorative (saving still needs the migrations).
+        $focusX = (float) ($value->focus_x ?? 0.5);
+        $focusY = (float) ($value->focus_y ?? 0.5);
         $variants = [];
 
         foreach (array_keys($variations) as $name) {
             $conversion = $value->conversion($name);
 
-            $variants[$name] = $conversion === null ? self::defaultVariant($value->focus_x, $value->focus_y) : [
+            $variants[$name] = $conversion === null ? self::defaultVariant($focusX, $focusY) : [
                 'media_id' => $conversion->media_id,
                 'alt' => $conversion->alt_text,
                 'focus_x' => $conversion->focus_x,
                 'focus_y' => $conversion->focus_y,
                 'zoom' => $conversion->zoom,
-                'custom' => $conversion->custom_focus || $conversion->media_id !== null,
+                'custom' => (bool) $conversion->custom_focus || $conversion->media_id !== null,
             ];
         }
 
@@ -72,9 +76,9 @@ class ImagePickerState
             'token' => FieldValueToken::for($value->id),
             'media_id' => $value->media_id,
             'alt' => $value->alt_text,
-            'focus_x' => $value->focus_x,
-            'focus_y' => $value->focus_y,
-            'decorative' => $value->decorative,
+            'focus_x' => $focusX,
+            'focus_y' => $focusY,
+            'decorative' => (bool) $value->decorative,
             'dirty' => false,
             'variants' => $variants,
         ];
