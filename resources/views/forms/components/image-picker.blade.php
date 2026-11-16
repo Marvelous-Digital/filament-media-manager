@@ -114,11 +114,31 @@
                 const coverWidth = source.width / source.height > ta ? Math.round(source.height * ta) : source.width;
                 return this.state.variants[name].zoom > coverWidth / tw + 0.001;
             },
+            // A variation follows the base focus point until it is moved on its own or uses its own image.
+            follows(name) {
+                const variant = this.state.variants[name];
+                return ! variant.custom && ! variant.media_id;
+            },
+            focusOf(name) {
+                return name === null ? this.state : this.state.variants[name];
+            },
             setFocus(name, event) {
                 const rect = this.$refs.stage.getBoundingClientRect();
-                const variant = this.state.variants[name];
-                variant.focus_x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
-                variant.focus_y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+                const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+                const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+                if (name === null) {
+                    this.state.focus_x = x;
+                    this.state.focus_y = y;
+                    for (const variant of Object.keys(this.targets)) {
+                        if (this.follows(variant)) Object.assign(this.state.variants[variant], { focus_x: x, focus_y: y });
+                    }
+                } else {
+                    Object.assign(this.state.variants[name], { focus_x: x, focus_y: y, custom: true });
+                }
+                this.touch();
+            },
+            useBaseFocus(name) {
+                Object.assign(this.state.variants[name], { focus_x: this.state.focus_x, focus_y: this.state.focus_y, zoom: 1, custom: false });
                 this.touch();
             },
         }"
@@ -207,6 +227,10 @@
                                     <span class="fmm-strip-badge" title="{{ __('filament-media-manager::media.picker.own_image') }}">
                                         <x-filament::icon icon="heroicon-m-photo" class="fmm-strip-badge-icon" />
                                     </span>
+                                @else
+                                    <span class="fmm-strip-badge" x-cloak x-show="! follows(@js($name))" title="{{ __('filament-media-manager::media.picker.own_focus') }}">
+                                        <x-filament::icon icon="heroicon-m-viewfinder-circle" class="fmm-strip-badge-icon" />
+                                    </span>
                                 @endif
 
                                 @if ($status === ConversionStatus::Failed)
@@ -229,19 +253,25 @@
 
             <div
                 class="fmm-stage"
-                x-bind:class="{ 'fmm-stage-editing': active !== null }"
+                x-bind:class="{ 'fmm-stage-editing': {{ filled($variations) ? 'true' : 'false' }} }"
                 x-data="{ dragging: false }"
-                x-on:pointerdown.prevent="if (active === null) return; dragging = true; $event.target.setPointerCapture?.($event.pointerId); setFocus(active, $event)"
-                x-on:pointermove="dragging && active !== null && setFocus(active, $event)"
+                @if (filled($variations))
+                    x-on:pointerdown.prevent="dragging = true; $event.target.setPointerCapture?.($event.pointerId); setFocus(active, $event)"
+                    x-on:pointermove="dragging && setFocus(active, $event)"
+                @endif
                 x-on:pointerup="dragging = false"
                 x-on:pointercancel="dragging = false"
             >
                 <img x-ref="stage" src="{{ $media[$state['media_id']]['url'] ?? '' }}" x-bind:src="stageSource()?.url" alt="{{ $state['alt'] }}" draggable="false" />
                 @if (filled($variations))
                     <span class="fmm-stage-frame" x-cloak x-show="active !== null && hasSize(active)" x-bind:style="active !== null && hasSize(active) ? cropRectStyle(active) : ''"></span>
-                    <span class="fmm-focus-marker" x-cloak x-show="active !== null" x-bind:style="active !== null ? `left:${state.variants[active].focus_x * 100}%;top:${state.variants[active].focus_y * 100}%` : ''"></span>
+                    <span class="fmm-focus-marker" x-cloak x-bind:style="`left:${focusOf(active).focus_x * 100}%;top:${focusOf(active).focus_y * 100}%`"></span>
                 @endif
             </div>
+
+            @if (filled($variations))
+                <p class="fmm-stage-hint" x-cloak x-show="active === null">{{ __('filament-media-manager::media.picker.base_focus_hint') }}</p>
+            @endif
 
             @foreach ($variations as $name => [$width, $height])
                 @php
@@ -254,6 +284,9 @@
 
                 <div class="fmm-crop-toolbar" data-fmm-toolbar="{{ $name }}" wire:key="fmm-toolbar-{{ $statePath }}-{{ $name }}" x-cloak x-show="active === @js($name)">
                     <p class="fmm-crop-toolbar-title">{{ $name }} · {{ Ratio::reduce($width, $height) }} · {{ $width }}×{{ $height }}</p>
+                    @unless ($isOverridden)
+                        <p class="fmm-crop-toolbar-note" x-show="follows(@js($name))">{{ __('filament-media-manager::media.picker.follows_base_focus') }}</p>
+                    @endunless
 
                     <div class="fmm-zoom">
                         <label class="fmm-zoom-label" for="fmm-zoom-{{ $statePath }}-{{ $name }}">
@@ -276,9 +309,15 @@
                     </div>
 
                     <div class="fmm-crop-toolbar-actions">
-                        <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-uturn-left" x-on:click="Object.assign(state.variants[{{ $jsName }}], { focus_x: 0.5, focus_y: 0.5, zoom: 1 }); touch()">
-                            {{ __('filament-media-manager::media.picker.reset') }}
-                        </x-filament::button>
+                        @if ($isOverridden)
+                            <x-filament::button size="xs" color="gray" icon="heroicon-o-arrow-path" x-on:click="Object.assign(state.variants[{{ $jsName }}], { focus_x: 0.5, focus_y: 0.5, zoom: 1 }); touch()">
+                                {{ __('filament-media-manager::media.picker.reset') }}
+                            </x-filament::button>
+                        @else
+                            <x-filament::button size="xs" color="gray" icon="heroicon-o-viewfinder-circle" x-show="! follows({{ $jsName }})" x-on:click="useBaseFocus({{ $jsName }})">
+                                {{ __('filament-media-manager::media.picker.use_base_focus') }}
+                            </x-filament::button>
+                        @endif
                         <x-filament::button size="xs" color="gray" icon="heroicon-o-photo" x-on:click="pick({{ $jsName }})">
                             {{ __('filament-media-manager::media.picker.use_another_image_for', ['name' => $name]) }}
                         </x-filament::button>

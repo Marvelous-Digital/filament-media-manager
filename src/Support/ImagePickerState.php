@@ -151,7 +151,7 @@ class ImagePickerState
             return $state;
         }
 
-        $state['variants'][$variation] = self::defaultVariant(self::focusOr($state['focus_x'] ?? null), self::focusOr($state['focus_y'] ?? null));
+        $state['variants'][$variation] = self::defaultVariant($state['focus_x'], $state['focus_y']);
         $state['dirty'] = true;
 
         return $state;

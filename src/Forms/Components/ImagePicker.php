@@ -199,7 +199,7 @@ class ImagePicker extends Field
         $state = $this->getState();
 
         if (is_array($state)) {
-            $this->state(ImagePickerState::withoutVariantImage($state, $variation));
+            $this->state(ImagePickerState::withoutVariantImage(ImagePickerState::syncVariants($state, $this->getVariations()), $variation));
         }
     }
 
@@ -259,6 +259,6 @@ class ImagePicker extends Field
 
         $this->state($target === 'main' || ! is_array($state)
             ? ImagePickerState::withMainImage(is_array($state) ? $state : null, $media, $this->getVariations())
-            : ImagePickerState::withVariantImage($state, $target, $media));
+            : ImagePickerState::withVariantImage(ImagePickerState::syncVariants($state, $this->getVariations()), $target, $media));
     }
 }

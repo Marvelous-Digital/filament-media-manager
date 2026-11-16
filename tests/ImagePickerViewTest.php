@@ -137,7 +137,7 @@ it('renders a toolbar per variation with zoom, reset, another image, upload and 
         ->assertSee('data-fmm-toolbar="mobile"', escape: false)
         ->assertSee('desktop · 5:3 · 1500×900')
         ->assertSee('Zoom')
-        ->assertSee('Reset')
+        ->assertSee('Use base focus point')
         ->assertSee('Use another image for desktop')
         ->assertSee('Upload for mobile')
         ->assertSee('Retry')
@@ -328,4 +328,28 @@ it('does not restyle the media library toolbar', function () {
 
     expect(substr_count($css, '.fmm-toolbar {'))->toBe(1)
         ->and(substr_count($css, '.fmm-toolbar-actions {'))->toBe(1);
+});
+
+it('lets the base image set the focus point that following variations take', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory()->state(['width' => 2000, 'height' => 1000]), 'source')->create();
+
+    $html = Livewire::test(RenderHarness::class, ['preset' => $value->id])->html();
+
+    expect($html)->toContain('Drag on the image to set the focus point every format follows')
+        ->toContain('Follows the base focus point')
+        ->toContain('title="Own focus point"')
+        ->toContain('useBaseFocus(')
+        // The stage drags the base focus too, not only a variation's.
+        ->not->toContain('if (active === null) return;');
+});
+
+it('offers the base focus point only to variations using the base image, and reset to an own image', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create();
+    MediaConversion::factory()->for($value, 'value')->create(['variation' => 'mobile', 'media_id' => Media::factory()->create()->id]);
+
+    $html = Livewire::test(RenderHarness::class, ['preset' => $value->id])->html();
+    $toolbar = fn (string $name): string => str($html)->after('data-fmm-toolbar="' . $name . '"')->before('data-fmm-toolbar=')->toString();
+
+    expect($toolbar('desktop'))->toContain('Use base focus point')->not->toContain('>Reset')
+        ->and($toolbar('mobile'))->toContain('Reset')->not->toContain('Use base focus point');
 });
