@@ -4,6 +4,7 @@ All notable changes to `filament-media-manager` will be documented in this file.
 
 ## Unreleased
 
+- `ImagesPicker`: the remove button works again (its handler reached the browser uncompiled), and each alt text uses Filament's input component.
 - `ImagePicker` base focus point: select Base in the strip and drag to set the focus point every variation follows. Moving a variation on its own makes it custom (crosshair badge on its thumbnail); "Use base focus point" puts it back on the base point and zoom 1. Variations with their own image keep their own focus and a Reset button. New migration `update_media_field_tables_for_base_focus` (`focus_x`/`focus_y` on field values, `custom_focus` on conversions; conversions already moved off the centre or using their own image are marked custom, so no crop shifts): existing installs publish it with `--tag=filament-media-manager-migrations` and migrate. Form state gains `focus_x`/`focus_y` and a per-variant `custom` flag.
   - Translations: added `picker.use_base_focus`, `follows_base_focus`, `own_focus`, `base_focus_hint`.
 - `ImagePicker` alt texts (base and per-variation override) use Filament's input and field label components.

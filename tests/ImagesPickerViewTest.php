@@ -140,3 +140,16 @@ it('shows a missing badge instead of an empty image for media deleted from the l
         ->assertSee('Missing from the library')
         ->assertDontSee('src=""', escape: false);
 });
+
+it('compiles the remove handler and uses a Filament input for each alt text', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory()->state(['thumbnail_path' => 'thumbs/a.webp']), 'source')->create();
+
+    $html = Livewire::test(ImagesPickerRenderHarness::class, ['preset' => [$value->id]])->html();
+    $decoded = html_entity_decode($html, ENT_QUOTES);
+
+    // Blade does not compile @js() inside a component's attributes: it would reach the browser as is.
+    expect($html)->not->toContain('@js(')
+        ->and($decoded)->toContain("call('removeImage', { key: 'v{$value->id}' })")
+        ->toContain("x-model=\"item('v{$value->id}').alt\"")
+        ->and(str($html)->after('fmm-images-item')->toString())->toContain('fi-input-wrp');
+});

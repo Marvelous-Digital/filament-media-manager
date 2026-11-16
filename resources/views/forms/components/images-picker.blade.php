@@ -1,4 +1,6 @@
 @php
+    use Illuminate\Support\Js;
+
     $statePath = $getStatePath();
     $key = $getKey();
     $items = $field->getVerifiedState()['items'];
@@ -56,6 +58,10 @@
                 x-on:end.stop="call('reorderImages', { keys: $event.target.sortable.toArray() })"
             >
                 @foreach ($items as $item)
+                    @php
+                        // Blade does not compile @js() inside a component's attributes, so the handlers get the JS literal from here.
+                        $jsKey = (string) Js::from($item['key']);
+                    @endphp
                     <li
                         class="fmm-images-item"
                         wire:key="fmm-images-{{ $statePath }}-{{ $item['key'] }}"
@@ -78,16 +84,17 @@
                                 color="danger"
                                 size="sm"
                                 :label="__('filament-media-manager::media.picker.remove')"
-                                x-on:click.stop="call('removeImage', { key: @js($item['key']) })"
+                                x-on:click.stop="call('removeImage', { key: {{ $jsKey }} })"
                             />
                         </div>
-                        <input
-                            type="text"
-                            class="fi-input fmm-alt-input"
-                            x-model="item(@js($item['key'])).alt"
-                            placeholder="{{ __('filament-media-manager::media.picker.alt_text') }}"
-                            aria-label="{{ __('filament-media-manager::media.picker.alt_text') }}"
-                        />
+                        <x-filament::input.wrapper>
+                            <x-filament::input
+                                type="text"
+                                x-model="item({{ $jsKey }}).alt"
+                                :placeholder="__('filament-media-manager::media.picker.alt_text')"
+                                :aria-label="__('filament-media-manager::media.picker.alt_text')"
+                            />
+                        </x-filament::input.wrapper>
                     </li>
                 @endforeach
             </ul>
