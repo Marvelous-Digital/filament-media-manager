@@ -17,6 +17,7 @@ use Throwable;
  * @property string|null $alt_text
  * @property float $focus_x
  * @property float $focus_y
+ * @property bool $decorative
  * @property int|null $created_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -27,13 +28,14 @@ class MediaFieldValue extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['media_id', 'alt_text', 'focus_x', 'focus_y', 'created_by'];
+    protected $fillable = ['media_id', 'alt_text', 'focus_x', 'focus_y', 'decorative', 'created_by'];
 
     protected function casts(): array
     {
         return [
             'focus_x' => 'float',
             'focus_y' => 'float',
+            'decorative' => 'boolean',
         ];
     }
 
@@ -86,8 +88,13 @@ class MediaFieldValue extends Model
         return $this->url();
     }
 
+    /** A decorative image has an empty alt text, so screen readers skip it. */
     public function altFor(?string $variation = null): ?string
     {
+        if ($this->decorative) {
+            return '';
+        }
+
         if ($variation !== null && ($conversion = $this->conversion($variation)) !== null) {
             return $conversion->effectiveAltText();
         }

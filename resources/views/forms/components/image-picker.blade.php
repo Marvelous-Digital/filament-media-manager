@@ -1,6 +1,10 @@
 @php
     use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
+    use Filament\Support\View\Components\ToggleComponent;
+    use Illuminate\Support\Arr;
     use Illuminate\Support\Js;
+
+    use function Filament\Support\get_component_color_classes;
     use MarvelousDigital\FilamentMediaManager\Support\Ratio;
 
     $statePath = $getStatePath();
@@ -58,6 +62,13 @@
             },
             touch() {
                 this.state.dirty = true;
+            },
+            get decorative() {
+                return !! this.state?.decorative;
+            },
+            toggleDecorative() {
+                this.state.decorative = ! this.decorative;
+                this.touch();
             },
             sourceOf(name) {
                 const variant = this.state?.variants?.[name];
@@ -343,7 +354,7 @@
                     </div>
 
                     @if ($isOverridden)
-                        <div class="fmm-picker-alt">
+                        <div class="fmm-picker-alt" x-show="! decorative">
                             <label class="fi-fo-field-label" for="fmm-alt-{{ $statePath }}-{{ $name }}">
                                 <span class="fi-fo-field-label-content">{{ __('filament-media-manager::media.picker.alt_text') }}</span>
                             </label>
@@ -356,13 +367,31 @@
             @endforeach
 
             {{-- One alt text field at a time: a variation with its own image is described by its own field above. --}}
-            <div class="fmm-picker-alt" x-show="active === null || ! state.variants[active]?.media_id">
+            <div class="fmm-picker-alt" x-show="! decorative && (active === null || ! state.variants[active]?.media_id)">
                 <label class="fi-fo-field-label" for="fmm-alt-{{ $statePath }}">
                     <span class="fi-fo-field-label-content">{{ __('filament-media-manager::media.picker.alt_text') }}</span>
                 </label>
                 <x-filament::input.wrapper>
                     <x-filament::input id="fmm-alt-{{ $statePath }}" type="text" x-model="state.alt" x-on:input="touch()" :placeholder="__('filament-media-manager::media.picker.alt_text_placeholder')" />
                 </x-filament::input.wrapper>
+            </div>
+
+            <div class="fmm-decorative">
+                {{-- Filament's toggle markup, bound to the picker state: <x-filament::toggle> keeps its own `state`, which would hide ours. --}}
+                <label class="fmm-decorative-label">
+                    <button
+                        type="button"
+                        role="switch"
+                        x-on:click="toggleDecorative()"
+                        x-bind:aria-checked="decorative.toString()"
+                        x-bind:class="decorative ? @js(Arr::toCssClasses(['fi-toggle-on', ...get_component_color_classes(ToggleComponent::class, 'primary')])) : @js(Arr::toCssClasses(['fi-toggle-off', ...get_component_color_classes(ToggleComponent::class, 'gray')]))"
+                        class="fi-toggle"
+                    >
+                        <div><div aria-hidden="true"></div><div aria-hidden="true"></div></div>
+                    </button>
+                    <span class="fi-fo-field-label-content">{{ __('filament-media-manager::media.picker.decorative') }}</span>
+                </label>
+                <p class="fmm-decorative-hint" x-cloak x-show="decorative">{{ __('filament-media-manager::media.picker.decorative_hint') }}</p>
             </div>
 
             <p class="fmm-unsaved" x-cloak x-show="state?.dirty">

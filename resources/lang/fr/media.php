@@ -94,6 +94,8 @@ return [
         'drag_to_reorder' => 'Glisser pour réorganiser',
         'no_images' => 'Aucune image pour le moment.',
         'alt_text' => 'Texte alternatif',
+        'decorative' => 'Image décorative',
+        'decorative_hint' => 'Les lecteurs d’écran ignorent cette image : elle est affichée avec un texte alternatif vide. Les textes saisis sont conservés.',
         'alt_text_placeholder' => 'Décrivez cette image',
         'required_formats' => 'Formats requis',
         'unsaved' => 'Pas encore enregistré — les changements d’image seront publiés à l’enregistrement.',

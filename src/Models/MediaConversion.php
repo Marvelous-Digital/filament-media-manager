@@ -90,6 +90,10 @@ class MediaConversion extends Model
 
     public function effectiveAltText(): ?string
     {
+        if ($this->value->decorative) {
+            return '';
+        }
+
         if ($this->media_id !== null && filled($this->alt_text)) {
             return $this->alt_text;
         }

@@ -94,6 +94,8 @@ return [
         'drag_to_reorder' => 'Drag to reorder',
         'no_images' => 'No images yet.',
         'alt_text' => 'Alt text',
+        'decorative' => 'Decorative image',
+        'decorative_hint' => 'Screen readers skip this image: it is shown with an empty alt text. The alt texts you typed are kept.',
         'alt_text_placeholder' => 'Describe this image',
         'required_formats' => 'Required formats',
         'unsaved' => 'Not saved yet — image changes go live when you save.',

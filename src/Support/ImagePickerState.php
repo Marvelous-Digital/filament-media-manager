@@ -15,7 +15,7 @@ use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
  * on its own, or using its own image).
  *
  * @phpstan-type Variant array{media_id: int|null, alt: string|null, focus_x: float, focus_y: float, zoom: float, custom: bool}
- * @phpstan-type State array{id: int|null, token: string|null, media_id: int|null, alt: string|null, focus_x: float, focus_y: float, dirty: bool, variants: array<string, Variant>}
+ * @phpstan-type State array{id: int|null, token: string|null, media_id: int|null, alt: string|null, focus_x: float, focus_y: float, decorative: bool, dirty: bool, variants: array<string, Variant>}
  */
 class ImagePickerState
 {
@@ -74,6 +74,7 @@ class ImagePickerState
             'alt' => $value->alt_text,
             'focus_x' => $value->focus_x,
             'focus_y' => $value->focus_y,
+            'decorative' => $value->decorative,
             'dirty' => false,
             'variants' => $variants,
         ];
@@ -102,6 +103,7 @@ class ImagePickerState
             'alt' => $state['alt'] ?? null,
             'focus_x' => $focusX,
             'focus_y' => $focusY,
+            'decorative' => filter_var($state['decorative'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'dirty' => (bool) ($state['dirty'] ?? false),
             'variants' => $variants,
         ];
@@ -170,7 +172,7 @@ class ImagePickerState
             return null;
         }
 
-        return ['id' => (int) $state['id'], 'token' => $state['token'] ?? null, 'media_id' => null, 'alt' => null, 'focus_x' => 0.5, 'focus_y' => 0.5, 'dirty' => true, 'variants' => []];
+        return ['id' => (int) $state['id'], 'token' => $state['token'] ?? null, 'media_id' => null, 'alt' => null, 'focus_x' => 0.5, 'focus_y' => 0.5, 'decorative' => false, 'dirty' => true, 'variants' => []];
     }
 
     /**
@@ -231,6 +233,7 @@ class ImagePickerState
             'alt' => is_scalar($alt) ? (string) $alt : null,
             'focus_x' => self::focusOr($state['focus_x'] ?? null),
             'focus_y' => self::focusOr($state['focus_y'] ?? null),
+            'decorative' => filter_var($state['decorative'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'dirty' => (bool) ($state['dirty'] ?? false),
             'variants' => $mediaId === null ? [] : $variants,
         ];

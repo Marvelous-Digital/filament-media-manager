@@ -53,6 +53,11 @@ class PersistImagePicker
             'alt_text' => $state['alt'] ?? null,
         ]);
 
+        // State without the flag (the ImagesPicker sends none) keeps the saved one.
+        if (array_key_exists('decorative', $state)) {
+            $value->decorative = filter_var($state['decorative'], FILTER_VALIDATE_BOOLEAN);
+        }
+
         // State without a base focus (the ImagesPicker sends none) keeps the saved one.
         if (array_key_exists('focus_x', $state) || array_key_exists('focus_y', $state)) {
             $value->fill([

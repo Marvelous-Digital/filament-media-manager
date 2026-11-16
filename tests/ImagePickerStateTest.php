@@ -94,7 +94,7 @@ it('removes an unsaved image entirely and marks a saved one for deletion', funct
     expect(ImagePickerState::withoutImage(null))->toBeNull()
         ->and(ImagePickerState::withoutImage(['id' => null, 'media_id' => 3]))->toBeNull()
         ->and(ImagePickerState::withoutImage(['id' => 5, 'media_id' => 3]))
-        ->toBe(['id' => 5, 'token' => null, 'media_id' => null, 'alt' => null, 'focus_x' => 0.5, 'focus_y' => 0.5, 'dirty' => true, 'variants' => []])
+        ->toBe(['id' => 5, 'token' => null, 'media_id' => null, 'alt' => null, 'focus_x' => 0.5, 'focus_y' => 0.5, 'decorative' => false, 'dirty' => true, 'variants' => []])
         ->and(ImagePickerState::withoutImage(['id' => 5, 'token' => 'abc', 'media_id' => 3])['token'])->toBe('abc');
 });
 

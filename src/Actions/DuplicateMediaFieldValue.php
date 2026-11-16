@@ -69,6 +69,7 @@ class DuplicateMediaFieldValue
             'alt_text' => $this->alt($source->alt_text, $mapAlt),
             'focus_x' => $source->focus_x,
             'focus_y' => $source->focus_y,
+            'decorative' => $source->decorative,
             'created_by' => Auth::id(),
         ]);
 
