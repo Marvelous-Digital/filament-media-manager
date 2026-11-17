@@ -2,7 +2,7 @@
 
 All notable changes to `filament-media-manager` will be documented in this file.
 
-## Unreleased
+## v0.3.0 - 2026-11-17
 
 - `ImagePicker` opens an image of a database not yet migrated for the base focus point and decorative flag (centred, not decorative) instead of failing with a TypeError; saving still needs `update_media_field_tables_for_base_focus` and `update_media_field_values_for_decorative`.
 - `PersistImagePicker::execute()` takes two optional arguments for copy-on-write saves: `replaces` (the stored row the new one replaces: a crop that is the same, same image, size, focus and zoom, copies that row's file instead of being generated again) and `generateNow` (the other new or changed crops are generated during the save, after the commit, instead of on the queue). A page rendered right after such a save shows every crop.
