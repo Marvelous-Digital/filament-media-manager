@@ -101,6 +101,8 @@ return [
     'usage' => [
         // Ability (Gate) required to replace a media everywhere it is used. The action is hidden without it.
         'replace_ability' => 'replace-media',
+        // Mime types a document may be replaced with. null accepts any non-image file.
+        'document_mime_types' => null,
     ],
 ];
 ```
@@ -125,6 +127,7 @@ return [
 - **`thumbnail.queue_name`** — the queue name the `GenerateThumbnail` job is dispatched to. `null` uses the connection's default queue.
 - **`per_page`** — number of items fetched per "Load more" click in the media grid.
 - **`usage.replace_ability`** — the Gate ability a user needs to replace a media everywhere it is used (default `replace-media`). Without it the action is hidden. See [Media usage](#media-usage).
+- **`usage.document_mime_types`** — the mime types a document may be replaced with (e.g. the types your front end renders as downloads). `null` (the default) accepts any non-image file.
 - **`table_names`** — the database tables the package creates and reads. The defaults are prefixed with `media_manager_` so the package can be installed next to `spatie/laravel-medialibrary` (and plugins built on it, such as `ralphjsmit/laravel-filament-media-library`), which own a `media` table. Change them before running the migrations: the published migrations read them too.
 
   **Upgrading from an install that created unprefixed tables** (`media`, `media_folders`, `media_field_values`, `media_conversions`): either keep those names by setting them in your published config, or rename the tables in a migration of your own.
@@ -311,7 +314,7 @@ $usage->forget(Page::class, $page->id);        // every source and revision of t
 $usage->forgetRevision($revision->id);         // one revision, e.g. when it is pruned
 ```
 
-`UsageSource` is `Live`, `Draft` or `History`. Live and draft usages block deletion; history usages only show up in the "Used in" list. While usage tracking is active, the library grid (not the picker) marks media without any usage with an "Unused" badge. The "Used in" list shows "Shown on N pages" under an owner recorded globally.
+`UsageSource` is `Live`, `Draft` or `History`. Live and draft usages block deletion; history usages only show up in the "Used in" list, one entry per owner ("3 earlier versions"). While usage tracking is active, the library grid (not the picker) marks media without any usage with an "Unused" badge.
 
 4. Build the index once for existing content (sync every owner), then call `app(MediaUsage::class)->markIndexed()`. `isActive()` is true only when the host called `tracked()` and the index was marked as built, so an empty, never-built index cannot make everything look deletable.
 
@@ -319,7 +322,7 @@ $usage->forgetRevision($revision->id);         // one revision, e.g. when it is 
 
 ### Deleting media in use
 
-While the index is active, a media with a live or draft usage cannot be deleted: the library shows its usages instead of a delete button, bulk delete skips it, and deleting the model throws `MediaInUse`.
+While the index is active, a media with a live or draft usage cannot be deleted: the delete button stays, and deleting is refused with a notification naming the owners that use it (the first five, then "+N"). Bulk delete skips it and lists what it skipped, and deleting the model throws `MediaInUse`. A media used only in history can be deleted; the confirmation warns how many earlier versions it appears in.
 
 ### Describing owners
 
@@ -345,11 +348,13 @@ class DescribesOwners implements DescribesMediaOwners
 $this->app->bind(DescribesMediaOwners::class, DescribesOwners::class);
 ```
 
-`OwnerDescription` also takes `children` (nested descriptions, e.g. the blocks of a page).
+`OwnerDescription` also takes `children`: for a shared (global) record, the pages that show it. The list shows them under the record as "Shown on N pages". The `Usage` passed to `describe()` carries a locale only when the usages of that owner span exactly one locale (`null` otherwise), and the describer is called once per owner (and per revision for drafts); history is one entry per owner.
 
 ### Replacing a media everywhere
 
-`ReplaceMedia::image($old, $new)` repoints every placement, crop override and usage row of `$old` to `$new` and deletes `$old` once nothing references it; it returns the number of placements. Crops are regenerated, and each replaced image is flagged `alt_check_required` (decorative images excepted) so the `ImagePicker` shows an "Alt is fine" confirmation until an editor reviews the alt text. `ReplaceMedia::document($old, $file)` swaps the file of a document in place: same id, name and folder.
+`ReplaceMedia::image($old, $new)` repoints every placement, crop override and usage row of `$old` to `$new` and deletes `$old` once nothing references it; it returns the number of placements. Crops are regenerated, and each replaced image is flagged `alt_check_required` (decorative images excepted) so the `ImagePicker` shows an "Alt is fine" confirmation until an editor reviews the alt text. `ReplaceMedia::document($old, $file)` swaps the file of a document in place: same id, name and folder. When `usage.document_mime_types` is set, a file of another type is refused (`InvalidArgumentException`; the library action shows it as a form error).
+
+After a replace committed, `MarvelousDigital\FilamentMediaManager\Events\MediaReplaced` is dispatched (`oldMediaId`, `newMediaId`, `placements`); confirming an alt text dispatches `AltCheckConfirmed` (`value`). Listen to them to refresh caches that depend on media.
 
 The library action is shown only to users who pass the `usage.replace_ability` gate (default `replace-media`); define it, e.g. `Gate::define('replace-media', fn ($user) => ...)`.
 
