@@ -336,34 +336,20 @@ class MediaLibrary extends Page
     }
 
     /**
-     * Titles of the owners that block deleting a media (live or draft), deduplicated.
+     * Titles of the owners that block deleting a media (live or draft), deduplicated. Only the first
+     * $limit owners are described.
      *
      * @return list<string>
      */
     public function ownersBlockingDelete(int $mediaId, int $limit = 5): array
     {
-        $groups = $this->groupUsages(
-            app(MediaUsage::class)->usagesOf($mediaId)->filter(fn (Usage $usage) => $usage->source->blocksDelete())
-        );
-        $describer = app(DescribesMediaOwners::class);
-        $titles = [];
-
-        foreach ($groups as $group) {
-            foreach ($group as $entry) {
-                $title = $describer->describe($entry['usage'])->title;
-
-                if (! in_array($title, $titles, true)) {
-                    $titles[] = $title;
-                }
-            }
-        }
-
-        return array_slice($titles, 0, $limit);
+        return $this->describeTitles(array_slice($this->blockingOwners($mediaId), 0, $limit));
     }
 
     /**
-     * Where a media is used: per source (live, draft, history), one entry per owner and revision,
-     * with the locales it appears in.
+     * Where a media is used: per source (live, draft, history), one entry per owner (and per revision
+     * for drafts), with the locales it appears in. An owner's history is one entry counting its
+     * earlier versions.
      *
      * @return array{live: list<array{owner: OwnerDescription, locales: list<string>}>, draft: list<array{owner: OwnerDescription, locales: list<string>}>, history: list<array{owner: OwnerDescription, locales: list<string>}>}
      */
@@ -373,20 +359,33 @@ class MediaLibrary extends Page
         $result = [];
 
         foreach ($this->groupUsages(app(MediaUsage::class)->usagesOf($mediaId)) as $source => $entries) {
-            $result[$source] = array_map(fn (array $entry) => [
-                'owner' => $describer->describe($entry['usage']),
-                'locales' => $entry['locales'],
-            ], $entries);
+            $result[$source] = array_map(function (array $entry) use ($describer): array {
+                $owner = $describer->describe($entry['usage']);
+                $versions = count($entry['revisions']);
+
+                if ($versions > 1) {
+                    $owner = new OwnerDescription(
+                        $owner->title,
+                        $owner->url,
+                        trans_choice('filament-media-manager::media.usage.earlier_versions', $versions, ['count' => $versions]),
+                        $owner->children,
+                    );
+                }
+
+                return ['owner' => $owner, 'locales' => $entry['locales']];
+            }, $entries);
         }
 
         return $result;
     }
 
     /**
-     * Groups usages by source (live, draft, history), then by owner type, id and revision.
+     * Groups usages by source (live, draft, history), then by owner (and revision, except for history,
+     * which is one group per owner). Each group carries the usage to describe: its locale is the
+     * group's only locale, or null when the group spans several.
      *
      * @param  Collection<int, Usage>  $usages
-     * @return array<string, list<array{usage: Usage, locales: list<string>}>>
+     * @return array<string, list<array{usage: Usage, locales: list<string>, revisions: list<int>}>>
      */
     protected function groupUsages(Collection $usages): array
     {
@@ -397,17 +396,73 @@ class MediaLibrary extends Page
         }
 
         foreach ($usages as $usage) {
-            $key = $usage->ownerType . '|' . $usage->ownerId . '|' . $usage->revisionId;
-            $entry = $groups[$usage->source->value][$key] ?? ['usage' => $usage, 'locales' => []];
+            $key = $usage->ownerType . '|' . $usage->ownerId
+                . ($usage->source === UsageSource::History ? '' : '|' . $usage->revisionId);
+            $entry = $groups[$usage->source->value][$key] ?? ['usage' => $usage, 'locales' => [], 'revisions' => []];
 
             if ($usage->locale !== null && ! in_array($usage->locale, $entry['locales'], true)) {
                 $entry['locales'][] = $usage->locale;
             }
 
+            if ($usage->revisionId !== null && ! in_array($usage->revisionId, $entry['revisions'], true)) {
+                $entry['revisions'][] = $usage->revisionId;
+            }
+
             $groups[$usage->source->value][$key] = $entry;
         }
 
-        return array_map(fn (array $entries) => array_values($entries), $groups);
+        return array_map(fn (array $entries): array => array_values(array_map(function (array $entry): array {
+            $usage = $entry['usage'];
+            $entry['usage'] = new Usage(
+                mediaId: $usage->mediaId,
+                fieldValueId: $usage->fieldValueId,
+                ownerType: $usage->ownerType,
+                ownerId: $usage->ownerId,
+                source: $usage->source,
+                revisionId: $usage->revisionId,
+                locale: count($entry['locales']) === 1 ? $entry['locales'][0] : null,
+            );
+
+            return $entry;
+        }, $entries)), $groups);
+    }
+
+    /**
+     * One usage per owner blocking a delete (live or draft), keyed by owner, in index order.
+     *
+     * @return array<string, Usage>
+     */
+    protected function blockingOwners(int $mediaId): array
+    {
+        $owners = [];
+
+        foreach (app(MediaUsage::class)->usagesOf($mediaId) as $usage) {
+            if ($usage->source->blocksDelete()) {
+                $owners[$usage->ownerType . '|' . $usage->ownerId] ??= $usage;
+            }
+        }
+
+        return $owners;
+    }
+
+    /**
+     * @param  array<string, Usage>  $owners
+     * @return list<string>
+     */
+    protected function describeTitles(array $owners): array
+    {
+        $describer = app(DescribesMediaOwners::class);
+        $titles = [];
+
+        foreach ($owners as $usage) {
+            $title = $describer->describe($usage)->title;
+
+            if (! in_array($title, $titles, true)) {
+                $titles[] = $title;
+            }
+        }
+
+        return $titles;
     }
 
     protected function historyOnlyCount(int $mediaId): int
@@ -418,24 +473,27 @@ class MediaLibrary extends Page
             return 0;
         }
 
-        return count($this->groupUsages($usage->usagesOf($mediaId))[UsageSource::History->value]);
+        return array_sum(array_map(
+            fn (array $entry): int => max(1, count($entry['revisions'])),
+            $this->groupUsages($usage->usagesOf($mediaId))[UsageSource::History->value],
+        ));
     }
 
-    protected function notifyInUse(?Media $media): void
+    protected function notifyInUse(?Media $media, int $limit = 5): void
     {
         if (! $media) {
             return;
         }
 
-        $all = $this->ownersBlockingDelete($media->id, PHP_INT_MAX);
-        $owners = array_slice($all, 0, 5);
-        $more = count($all) - count($owners);
+        $owners = $this->blockingOwners($media->id);
+        $titles = $this->describeTitles(array_slice($owners, 0, $limit));
+        $more = count($owners) - min($limit, count($owners));
 
         Notification::make()
             ->danger()
             ->title(__('filament-media-manager::media.usage.in_use_title'))
             ->body(__('filament-media-manager::media.usage.in_use_body', [
-                'owners' => implode(', ', $owners),
+                'owners' => implode(', ', $titles),
                 'more' => $more > 0 ? ' +' . $more : '',
             ]))
             ->send();

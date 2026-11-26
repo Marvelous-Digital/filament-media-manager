@@ -152,3 +152,62 @@ it('the picker renders no badge and runs no usage query', function () {
 
     expect($html)->not->toContain('data-unused')->and($usageQueries)->toHaveCount(0);
 });
+
+/** A describer recording every usage it is asked about, with a revision detail. */
+function recordingDescriber(): ArrayObject
+{
+    $calls = new ArrayObject;
+    app()->bind(DescribesMediaOwners::class, fn () => new class($calls) extends FallbackOwnerDescriber
+    {
+        public function __construct(private ArrayObject $calls) {}
+
+        public function describe(Usage $usage): OwnerDescription
+        {
+            $this->calls[] = $usage;
+
+            return new OwnerDescription('Title ' . $usage->ownerId, null, $usage->revisionId === null ? null : 'Revision ' . $usage->revisionId);
+        }
+    });
+
+    return $calls;
+}
+
+it('collapses the history of an owner into one entry counting its earlier versions', function () {
+    activateUsage();
+    $calls = recordingDescriber();
+    $media = Media::factory()->create();
+    useMedia($media, UsageSource::History, ownerId: 3, revisionId: 7);
+    useMedia($media, UsageSource::History, ownerId: 3, revisionId: 8);
+    useMedia($media, UsageSource::History, ownerId: 3, revisionId: 9);
+    useMedia($media, UsageSource::History, ownerId: 4, revisionId: 10);
+
+    $groups = Livewire::test(MediaLibrary::class)->instance()->usageGroups($media->id);
+
+    expect($groups['history'])->toHaveCount(2)
+        ->and($groups['history'][0]['owner']->title)->toBe('Title 3')
+        ->and($groups['history'][0]['owner']->detail)->toBe(trans_choice('filament-media-manager::media.usage.earlier_versions', 3, ['count' => 3]))
+        ->and($groups['history'][0]['owner']->detail)->toBe('3 earlier versions')
+        ->and($groups['history'][1]['owner']->detail)->toBe('Revision 10')
+        ->and($calls)->toHaveCount(2);
+});
+
+it('has en and fr strings for the earlier versions', function () {
+    expect(trans_choice('filament-media-manager::media.usage.earlier_versions', 1, ['count' => 1], 'en'))->toBe('1 earlier version')
+        ->and(trans_choice('filament-media-manager::media.usage.earlier_versions', 4, ['count' => 4], 'fr'))->toBe('4 versions antérieures')
+        ->and(trans_choice('filament-media-manager::media.usage.earlier_versions', 1, ['count' => 1], 'fr'))->toBe('1 version antérieure');
+});
+
+it('describes a group with its locale only when it spans exactly one locale', function () {
+    activateUsage();
+    $calls = recordingDescriber();
+    $media = Media::factory()->create();
+    useMedia($media, UsageSource::Live, ownerId: 1, locale: 'fr');
+    useMedia($media, UsageSource::Live, ownerId: 1, locale: 'en');
+    useMedia($media, UsageSource::Live, ownerId: 2);
+    useMedia($media, UsageSource::Live, ownerId: 2, locale: 'de');
+
+    Livewire::test(MediaLibrary::class)->instance()->usageGroups($media->id);
+
+    $locales = collect($calls)->mapWithKeys(fn (Usage $usage) => [$usage->ownerId => $usage->locale])->all();
+    expect($locales)->toBe(['1' => null, '2' => 'de']);
+});

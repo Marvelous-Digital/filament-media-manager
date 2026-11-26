@@ -162,3 +162,50 @@ it('describes each blocking owner once', function () {
 
     expect($titles)->toBe(['Page #1', 'Page #2'])->and($calls)->toHaveCount(2);
 });
+
+it('the in-use notification describes at most five owners and counts the rest', function () {
+    activateUsage();
+    $media = Media::factory()->create();
+
+    foreach (range(1, 8) as $ownerId) {
+        useMedia($media, UsageSource::Live, ownerId: $ownerId, locale: 'fr');
+        useMedia($media, UsageSource::Draft, ownerId: $ownerId, revisionId: 100 + $ownerId);
+    }
+
+    $calls = new ArrayObject;
+    app()->bind(DescribesMediaOwners::class, fn () => new class($calls) extends FallbackOwnerDescriber
+    {
+        public function __construct(private ArrayObject $calls) {}
+
+        public function describe(Usage $usage): OwnerDescription
+        {
+            $this->calls[] = $usage->ownerId;
+
+            return parent::describe($usage);
+        }
+    });
+
+    Livewire::test(MediaLibrary::class)
+        ->callAction('deleteMedia', arguments: ['media' => $media->id])
+        ->assertNotified(
+            Notification::make()
+                ->danger()
+                ->title(__('filament-media-manager::media.usage.in_use_title'))
+                ->body(__('filament-media-manager::media.usage.in_use_body', ['owners' => 'Page #1, Page #2, Page #3, Page #4, Page #5', 'more' => ' +3']))
+        );
+
+    expect(count($calls))->toBeLessThanOrEqual(5);
+});
+
+it('the history-only warning counts every earlier version', function () {
+    activateUsage();
+    $media = Media::factory()->create();
+    useMedia($media, UsageSource::History, revisionId: 3);
+    useMedia($media, UsageSource::History, revisionId: 4);
+    useMedia($media, UsageSource::History, ownerId: 8, revisionId: 5);
+
+    Livewire::test(MediaLibrary::class)
+        ->mountAction('deleteMedia', arguments: ['media' => $media->id])
+        ->tap(fn ($t) => expect((string) $t->instance()->getMountedAction()->getModalDescription())
+            ->toBe(__('filament-media-manager::media.usage.history_only_warning', ['count' => 3])));
+});

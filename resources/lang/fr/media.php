@@ -125,6 +125,7 @@ return [
         'replace_refused' => 'Le média n’a pas été remplacé',
         'replace_same' => 'Choisissez une autre image que celle à remplacer.',
         'replace_one_source' => 'Téléversez un fichier ou choisissez une image, pas les deux.',
+        'earlier_versions' => '1 version antérieure|:count versions antérieures',
         'replaced_document' => 'Fichier remplacé',
     ],
 

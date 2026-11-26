@@ -125,6 +125,7 @@ return [
         'replace_refused' => 'The media was not replaced',
         'replace_same' => 'Pick another image than the one being replaced.',
         'replace_one_source' => 'Either upload a file or pick an image, not both.',
+        'earlier_versions' => '1 earlier version|:count earlier versions',
         'replaced_document' => 'File replaced',
     ],
 
