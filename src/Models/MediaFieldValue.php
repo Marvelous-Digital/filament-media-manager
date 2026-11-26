@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use MarvelousDigital\FilamentMediaManager\Events\AltCheckConfirmed;
 use Throwable;
 
 /**
@@ -109,6 +110,8 @@ class MediaFieldValue extends Model
     {
         $this->alt_check_required = false;
         $this->saveQuietly();
+
+        AltCheckConfirmed::dispatch($this);
     }
 
     public function directory(): string

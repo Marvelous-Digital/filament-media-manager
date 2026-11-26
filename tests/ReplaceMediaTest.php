@@ -3,6 +3,7 @@
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
@@ -11,6 +12,7 @@ use Livewire\Livewire;
 use MarvelousDigital\FilamentMediaManager\Actions\ReplaceMedia;
 use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
 use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
+use MarvelousDigital\FilamentMediaManager\Events\MediaReplaced;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateConversion;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
@@ -413,4 +415,34 @@ it('a failed delete of the old media after the commit still reports success', fu
 
     expect($value->fresh()->media_id)->toBe($new->id);
     Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'delete failed');
+});
+
+it('an image replace dispatches MediaReplaced after it committed', function () {
+    Event::fake([MediaReplaced::class]);
+    $old = Media::factory()->create();
+    $new = Media::factory()->create();
+    placement($old);
+
+    app(ReplaceMedia::class)->image($old, $new);
+
+    Event::assertDispatched(
+        MediaReplaced::class,
+        fn ($event) => $event->oldMediaId === $old->id && $event->newMediaId === $new->id && $event->placements === 1,
+    );
+});
+
+it('a document replace dispatches MediaReplaced only once committed', function () {
+    Storage::fake('public');
+    Event::fake([MediaReplaced::class]);
+    $doc = storedDocument();
+
+    DB::beginTransaction();
+    app(ReplaceMedia::class)->document($doc, UploadedFile::fake()->create('new.pdf', 30, 'application/pdf'));
+    Event::assertNotDispatched(MediaReplaced::class);
+    DB::commit();
+
+    Event::assertDispatched(
+        MediaReplaced::class,
+        fn ($event) => $event->oldMediaId === $doc->id && $event->newMediaId === $doc->id,
+    );
 });

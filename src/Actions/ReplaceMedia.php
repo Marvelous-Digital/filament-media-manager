@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
 use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
 use MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus;
+use MarvelousDigital\FilamentMediaManager\Events\MediaReplaced;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateConversion;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateThumbnail;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
@@ -76,6 +77,8 @@ class ReplaceMedia
             report($e);
         }
 
+        MediaReplaced::dispatch($old->id, $new->id, $count);
+
         return $count;
     }
 
@@ -130,12 +133,16 @@ class ReplaceMedia
 
         $disk = $old->disk;
 
-        DB::afterCommit(function () use ($disk, $oldPath, $oldThumbnail): void {
+        $mediaId = $old->id;
+
+        DB::afterCommit(function () use ($disk, $oldPath, $oldThumbnail, $mediaId): void {
             try {
                 Storage::disk($disk)->delete(array_filter([$oldPath, $oldThumbnail]));
             } catch (Throwable) {
                 // Best-effort cleanup of the previous file.
             }
+
+            MediaReplaced::dispatch($mediaId, $mediaId, 0);
         });
 
         return $old->refresh();
