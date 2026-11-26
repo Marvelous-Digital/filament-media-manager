@@ -245,7 +245,11 @@ class MediaLibrary extends Page
                     $count = app(ReplaceMedia::class)->image($old, $new);
                 } catch (\Throwable $e) {
                     // Only drop the upload when the replace did not commit: once it did, it owns the moved rows.
-                    $created && app(ReplaceMedia::class)->discardIfUnreferenced($created);
+                    try {
+                        $created && app(ReplaceMedia::class)->discardIfUnreferenced($created);
+                    } catch (\Throwable $cleanup) {
+                        report($cleanup);
+                    }
 
                     throw $e;
                 }

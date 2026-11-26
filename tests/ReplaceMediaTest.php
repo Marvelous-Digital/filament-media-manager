@@ -262,7 +262,7 @@ it('a failure after the replace committed leaves the new media and its moved row
     Gate::define('replace-media', fn () => true);
     $old = Media::factory()->create();
     $value = placement($old);
-    useMedia($old, UsageSource::Live);
+    useMedia($old, UsageSource::History, revisionId: 3);
 
     Media::deleting(function (Media $media) use ($old) {
         if ($media->id === $old->id) {
