@@ -2,7 +2,7 @@
 
 All notable changes to `filament-media-manager` will be documented in this file.
 
-## v0.4.0 - Unreleased
+## v0.4.0 - 2026-11-26
 
 - Media usage index: new table `media_manager_usages` (migration `create_media_usages_table`, which also creates `media_manager_usage_state`) records where each media is used (owner, source `live`/`draft`/`history`, optional revision and locale). The host application fills it with `MediaUsage::sync()`, `forget()` and `forgetRevision()`, and reads it with `usagesOf()`. It stays inactive until the host calls `MediaUsage::tracked()` (boot) and `markIndexed()` once the index is built, so installs that do not track usages behave as before.
 - Deleting a media that is live or in a draft is refused while the index is active: the delete button stays, and deleting shows a notification naming the owners that use it (the first five, then "+N"); bulk delete skips such media and lists them, and `Media` deleting throws `MediaInUse`. History-only usages warn in the delete confirmation but do not block.
