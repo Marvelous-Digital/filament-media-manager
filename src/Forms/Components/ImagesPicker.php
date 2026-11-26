@@ -79,6 +79,7 @@ class ImagesPicker extends Field
 
         $this->registerActions([
             fn (): Action => Action::make('confirmAlt')
+                ->disabled(fn (): bool => $this->isDisabled())
                 ->action(function (array $arguments, Component $component): void {
                     if (! $component instanceof ImagesPicker) {
                         return;

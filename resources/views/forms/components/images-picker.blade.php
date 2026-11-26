@@ -6,6 +6,7 @@
     $items = $field->getVerifiedState()['items'];
     $thumbnails = $field->getThumbnails();
     $altCheckKeys = $field->getAltCheckKeys();
+    $canConfirmAlt = ! $field->isDisabled();
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">
@@ -90,7 +91,8 @@
                         </div>
                         @if (in_array($item['key'], $altCheckKeys, true))
                             <x-filament::callout color="warning" icon="heroicon-o-exclamation-triangle" :heading="__('filament-media-manager::media.alt_check.notice')">
-                                <x-slot name="controls">
+                                @if ($canConfirmAlt)
+                <x-slot name="controls">
                                     <x-filament::button
                                         size="xs"
                                         color="gray"
@@ -99,6 +101,7 @@
                                         {{ __('filament-media-manager::media.alt_check.confirm') }}
                                     </x-filament::button>
                                 </x-slot>
+                                @endif
                             </x-filament::callout>
                         @endif
                         <x-filament::input.wrapper>

@@ -180,7 +180,7 @@ class MediaUsage
             return [];
         }
 
-        $used = MediaUsageRow::query()->whereIn('media_id', $mediaIds)->pluck('media_id')->all();
+        $used = MediaUsageRow::query()->whereIn('media_id', $mediaIds)->distinct()->pluck('media_id')->all();
 
         return array_values(array_diff($mediaIds, $used));
     }

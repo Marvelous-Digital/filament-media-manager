@@ -64,16 +64,22 @@ class DuplicateMediaFieldValue
     /** @param  (callable(string): string)|null  $mapAlt */
     private function copy(MediaFieldValue $source, ?callable $mapAlt): int
     {
-        $copy = MediaFieldValue::create([
+        $attributes = [
             'media_id' => $source->media_id,
             'alt_text' => $this->alt($source->alt_text, $mapAlt),
             'focus_x' => $source->focus_x,
             'focus_y' => $source->focus_y,
             'decorative' => $source->decorative,
-            // A translated alt was rewritten, so there is nothing left to check; a plain copy keeps the flag.
-            'alt_check_required' => $mapAlt === null && $source->alt_check_required,
             'created_by' => Auth::id(),
-        ]);
+        ];
+
+        // A translated alt was rewritten, so there is nothing left to check; a plain copy keeps the flag.
+        // Written only when set, so a site that has not run the alt-check migration still copies.
+        if ($mapAlt === null && $source->alt_check_required) {
+            $attributes['alt_check_required'] = true;
+        }
+
+        $copy = MediaFieldValue::create($attributes);
 
         foreach ($source->conversions as $conversion) {
             $new = $copy->conversions()->create([

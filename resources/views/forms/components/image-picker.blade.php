@@ -15,6 +15,7 @@
     $media = $field->getMediaPayload();
     $saved = $field->getSavedValue();
     $needsAltCheck = $saved?->alt_check_required ?? false;
+    $canConfirmAlt = ! $field->isDisabled();
     $isGenerating = $saved?->conversions->contains(fn ($conversion): bool => $conversion->status === ConversionStatus::Pending) ?? false;
 @endphp
 
@@ -159,6 +160,7 @@
 
         @if ($needsAltCheck)
             <x-filament::callout color="warning" icon="heroicon-o-exclamation-triangle" :heading="__('filament-media-manager::media.alt_check.notice')">
+                @if ($canConfirmAlt)
                 <x-slot name="controls">
                     <x-filament::button
                         size="xs"
@@ -168,6 +170,7 @@
                         {{ __('filament-media-manager::media.alt_check.confirm') }}
                     </x-filament::button>
                 </x-slot>
+                @endif
             </x-filament::callout>
         @endif
 

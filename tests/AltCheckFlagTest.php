@@ -6,12 +6,14 @@ use Filament\Actions\Testing\TestAction;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Component;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use MarvelousDigital\FilamentMediaManager\Actions\DuplicateMediaFieldValue;
 use MarvelousDigital\FilamentMediaManager\Actions\PersistImagePicker;
+use MarvelousDigital\FilamentMediaManager\Events\AltCheckConfirmed;
 use MarvelousDigital\FilamentMediaManager\Forms\Components\ImagePicker;
 use MarvelousDigital\FilamentMediaManager\Forms\Components\ImagesPicker;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
@@ -27,6 +29,8 @@ class AltCheckHarness extends Component implements HasActions, HasForms
 
     public ?int $preset = null;
 
+    public bool $disabled = false;
+
     public function mount(): void
     {
         $this->form->fill(['hero_image_id' => $this->preset]);
@@ -34,7 +38,7 @@ class AltCheckHarness extends Component implements HasActions, HasForms
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([ImagePicker::make('hero_image_id')->variations(['desktop' => [1500, 900]])])->statePath('data');
+        return $schema->components([ImagePicker::make('hero_image_id')->variations(['desktop' => [1500, 900]])->disabled($this->disabled)])->statePath('data');
     }
 
     public function render(): string
@@ -52,6 +56,8 @@ class AltCheckGalleryHarness extends Component implements HasActions, HasForms
 
     public array $preset = [];
 
+    public bool $disabled = false;
+
     public function mount(): void
     {
         $this->form->fill(['gallery' => $this->preset]);
@@ -59,7 +65,7 @@ class AltCheckGalleryHarness extends Component implements HasActions, HasForms
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([ImagesPicker::make('gallery')])->statePath('data');
+        return $schema->components([ImagesPicker::make('gallery')->disabled($this->disabled)])->statePath('data');
     }
 
     public function render(): string
@@ -244,4 +250,53 @@ it('the gallery picker shows the notice per flagged item and confirms by key', f
 
     expect($flagged->refresh()->alt_check_required)->toBeFalse()
         ->and($other->refresh()->alt_check_required)->toBeTrue();
+});
+
+it('a disabled picker offers no alt confirmation and ignores one', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create(['alt_check_required' => true]);
+
+    $livewire = Livewire::test(AltCheckHarness::class, ['preset' => $value->id, 'disabled' => true])
+        ->assertDontSee(__('filament-media-manager::media.alt_check.confirm'));
+
+    try {
+        $livewire->callAction(TestAction::make('confirmAlt')->schemaComponent(pickerKey($livewire)));
+    } catch (Throwable) {
+    }
+
+    expect($value->refresh()->alt_check_required)->toBeTrue();
+});
+
+it('a disabled gallery picker offers no alt confirmation and ignores one', function () {
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create(['alt_check_required' => true]);
+
+    $livewire = Livewire::test(AltCheckGalleryHarness::class, ['preset' => [$value->id], 'disabled' => true])
+        ->assertDontSee(__('filament-media-manager::media.alt_check.confirm'));
+
+    try {
+        $livewire->callAction(TestAction::make('confirmAlt')->schemaComponent(pickerKey($livewire)), arguments: ['key' => "v{$value->id}"]);
+    } catch (Throwable) {
+    }
+
+    expect($value->refresh()->alt_check_required)->toBeTrue();
+});
+
+it('confirming the alt dispatches AltCheckConfirmed', function () {
+    Event::fake([AltCheckConfirmed::class]);
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create(['alt_check_required' => true]);
+
+    $value->confirmAlt();
+
+    Event::assertDispatched(
+        AltCheckConfirmed::class,
+        fn ($event) => $event->value->is($value),
+    );
+});
+
+it('a locale copy on a site without the alt check column still copies', function () {
+    Illuminate\Support\Facades\Schema::table(config('filament-media-manager.table_names.field_values'), fn ($table) => $table->dropColumn('alt_check_required'));
+    $value = MediaFieldValue::factory()->for(Media::factory(), 'source')->create(['alt_text' => 'Cat']);
+
+    $copy = MediaFieldValue::find(app(DuplicateMediaFieldValue::class)->execute($value->id));
+
+    expect($copy)->not->toBeNull()->and($copy->alt_text)->toBe('Cat');
 });
