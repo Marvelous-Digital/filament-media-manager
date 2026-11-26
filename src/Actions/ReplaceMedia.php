@@ -67,8 +67,13 @@ class ReplaceMedia
             return $valueIds->count();
         });
 
-        if (! $this->isReferenced($old)) {
-            $old->delete();
+        // The replace committed: a failed cleanup of the old media must not undo it in the caller's eyes.
+        try {
+            if (! $this->isReferenced($old)) {
+                $old->delete();
+            }
+        } catch (Throwable $e) {
+            report($e);
         }
 
         return $count;
@@ -87,6 +92,12 @@ class ReplaceMedia
 
         if (MediaType::fromMimeType($mimeType) === MediaType::Image) {
             throw new InvalidArgumentException('A document cannot be replaced with an image.');
+        }
+
+        $allowed = static::documentMimeTypes();
+
+        if ($allowed !== null && ! in_array($mimeType, $allowed, true)) {
+            throw new InvalidArgumentException(__('filament-media-manager::media.usage.replace_document_type', ['types' => implode(', ', $allowed)]));
         }
 
         $uploads = app(UploadMedia::class);
@@ -128,6 +139,18 @@ class ReplaceMedia
         });
 
         return $old->refresh();
+    }
+
+    /**
+     * The mime types a document may be replaced with, or null for any non-image file.
+     *
+     * @return list<string>|null
+     */
+    public static function documentMimeTypes(): ?array
+    {
+        $types = config('filament-media-manager.usage.document_mime_types');
+
+        return is_array($types) ? array_values(array_map('strval', $types)) : null;
     }
 
     /** Deletes a freshly created media nobody references (after a failed replace). */

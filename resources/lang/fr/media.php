@@ -121,6 +121,10 @@ return [
         'replace_upload' => 'Téléverser un nouveau fichier',
         'replace_pick' => 'Ou choisir une image de la médiathèque',
         'replaced' => '{0} Remplacé, aucun emplacement à mettre à jour|{1} Remplacé sur :count emplacement|[2,*] Remplacé sur :count emplacements',
+        'replace_document_type' => 'Ce type de fichier ne peut pas remplacer un document. Types acceptés : :types.',
+        'replace_refused' => 'Le média n’a pas été remplacé',
+        'replace_same' => 'Choisissez une autre image que celle à remplacer.',
+        'replace_one_source' => 'Téléversez un fichier ou choisissez une image, pas les deux.',
         'replaced_document' => 'Fichier remplacé',
     ],
 

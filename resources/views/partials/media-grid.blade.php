@@ -58,7 +58,7 @@
                             wire:click="mountAction('retryThumbnail', { media: {{ $media->id }} })" />
                     @endif
                     @if ($canReplace ?? false)
-                        <x-filament::icon-button icon="heroicon-o-arrow-path" color="gray" size="sm" label="{{ __('filament-media-manager::media.usage.replace') }}"
+                        <x-filament::icon-button icon="heroicon-o-arrows-right-left" color="gray" size="sm" label="{{ __('filament-media-manager::media.usage.replace') }}"
                             wire:click="mountAction('replaceMedia', { media: {{ $media->id }} })" />
                     @endif
                     <x-filament::icon-button icon="heroicon-o-trash" color="danger" size="sm" label="{{ __('filament-media-manager::media.actions.delete') }}"

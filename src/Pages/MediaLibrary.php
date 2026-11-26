@@ -2,6 +2,7 @@
 
 namespace MarvelousDigital\FilamentMediaManager\Pages;
 
+use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -9,12 +10,14 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 use Livewire\WithFileUploads;
 use MarvelousDigital\FilamentMediaManager\Actions\ReplaceMedia;
 use MarvelousDigital\FilamentMediaManager\Actions\UploadMedia;
@@ -178,22 +181,31 @@ class MediaLibrary extends Page
     {
         return Action::make('replaceMedia')
             ->label(__('filament-media-manager::media.usage.replace'))
-            ->icon('heroicon-o-arrow-path')
+            ->icon('heroicon-o-arrows-right-left')
             ->modalHeading(__('filament-media-manager::media.usage.replace'))
             ->modalDescription(__('filament-media-manager::media.usage.replace_description'))
             ->visible(fn (): bool => $this->canReplace())
             ->schema(function (array $arguments): array {
                 $media = Media::find((int) ($arguments['media'] ?? 0));
                 $isImage = $media?->type === MediaType::Image;
+                $acceptedTypes = $isImage ? ['image/*'] : ReplaceMedia::documentMimeTypes();
+
+                $upload = FileUpload::make('file')
+                    ->label(__('filament-media-manager::media.usage.replace_upload'))
+                    ->storeFiles(false)
+                    ->maxFiles(1)
+                    ->required(! $isImage);
+
+                if ($isImage) {
+                    $upload->requiredWithout('library_media_id');
+                }
+
+                if ($acceptedTypes !== null) {
+                    $upload->acceptedFileTypes($acceptedTypes);
+                }
 
                 return [
-                    FileUpload::make('file')
-                        ->label(__('filament-media-manager::media.usage.replace_upload'))
-                        ->storeFiles(false)
-                        ->maxFiles(1)
-                        ->acceptedFileTypes($isImage ? ['image/*'] : [])
-                        ->required(! $isImage)
-                        ->requiredWithout($isImage ? 'library_media_id' : null),
+                    $upload,
                     Select::make('library_media_id')
                         ->label(__('filament-media-manager::media.usage.replace_pick'))
                         ->searchable()
@@ -207,10 +219,19 @@ class MediaLibrary extends Page
                             ->all())
                         ->getOptionLabelUsing(fn ($value): ?string => Media::query()->whereKey($value)->value('name'))
                         ->requiredWithout('file')
+                        ->rules([
+                            fn (Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get, $media): void {
+                                if ($media !== null && (int) $value === $media->id) {
+                                    $fail(__('filament-media-manager::media.usage.replace_same'));
+                                } elseif (filled($value) && filled($get('file'))) {
+                                    $fail(__('filament-media-manager::media.usage.replace_one_source'));
+                                }
+                            },
+                        ])
                         ->visible($isImage),
                 ];
             })
-            ->action(function (array $arguments, array $data): void {
+            ->action(function (array $arguments, array $data, Action $action): void {
                 $old = Media::find((int) $arguments['media']);
 
                 if (! $old || ! $this->canReplace()) {
@@ -221,7 +242,11 @@ class MediaLibrary extends Page
                 $file = is_array($file) ? (reset($file) ?: null) : $file;
 
                 if ($old->type !== MediaType::Image) {
-                    app(ReplaceMedia::class)->document($old, $file);
+                    try {
+                        app(ReplaceMedia::class)->document($old, $file);
+                    } catch (InvalidArgumentException $e) {
+                        $this->refuseReplace($action, $e);
+                    }
 
                     Notification::make()->success()->title(__('filament-media-manager::media.usage.replaced_document'))->send();
 
@@ -251,6 +276,10 @@ class MediaLibrary extends Page
                         report($cleanup);
                     }
 
+                    if ($e instanceof InvalidArgumentException) {
+                        $this->refuseReplace($action, $e);
+                    }
+
                     throw $e;
                 }
 
@@ -259,6 +288,20 @@ class MediaLibrary extends Page
                     ->title(trans_choice('filament-media-manager::media.usage.replaced', $count, ['count' => $count]))
                     ->send();
             });
+    }
+
+    /** A replace the rules refused: a danger notification, the modal stays open. */
+    protected function refuseReplace(Action $action, InvalidArgumentException $exception): never
+    {
+        Notification::make()
+            ->danger()
+            ->title(__('filament-media-manager::media.usage.replace_refused'))
+            ->body($exception->getMessage())
+            ->send();
+
+        $action->halt();
+
+        throw new \LogicException('Unreachable.');
     }
 
     protected function canReplace(): bool

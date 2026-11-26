@@ -41,5 +41,8 @@ return [
     'usage' => [
         // Ability (Gate) required to replace a media everywhere it is used. The action is hidden without it.
         'replace_ability' => 'replace-media',
+        // Mime types a document may be replaced with (list of strings). null accepts any non-image file.
+        // A host that only renders some document types (e.g. CTA downloads) sets it to that list.
+        'document_mime_types' => null,
     ],
 ];

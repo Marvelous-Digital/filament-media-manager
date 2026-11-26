@@ -121,6 +121,10 @@ return [
         'replace_upload' => 'Upload a new file',
         'replace_pick' => 'Or pick an image from the library',
         'replaced' => '{0} Replaced, no placement to update|{1} Replaced on :count placement|[2,*] Replaced on :count placements',
+        'replace_document_type' => 'This file type cannot replace a document. Accepted: :types.',
+        'replace_refused' => 'The media was not replaced',
+        'replace_same' => 'Pick another image than the one being replaced.',
+        'replace_one_source' => 'Either upload a file or pick an image, not both.',
         'replaced_document' => 'File replaced',
     ],
 

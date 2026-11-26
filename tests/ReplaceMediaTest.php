@@ -3,6 +3,7 @@
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -280,4 +281,136 @@ it('a failure after the replace committed leaves the new media and its moved row
     expect($new)->not->toBeNull()
         ->and($value->fresh()->media_id)->toBe($new->id)
         ->and(MediaUsageRow::query()->where('media_id', $new->id)->count())->toBe(1);
+});
+
+function storedDocument(string $name = 'old.pdf', string $mime = 'application/pdf'): Media
+{
+    $path = UploadedFile::fake()->create($name, 10, $mime)->storeAs('media/01DOC', $name, ['disk' => 'public']);
+
+    return Media::factory()->create([
+        'name' => 'Brochure', 'file_name' => $name, 'path' => $path, 'mime_type' => $mime,
+        'type' => MediaType::Document, 'size' => 10 * 1024, 'disk' => 'public',
+    ]);
+}
+
+it('the document action replaces a pdf with a pdf in place', function () {
+    Storage::fake('public');
+    activateUsage();
+    Gate::define('replace-media', fn () => true);
+    $doc = storedDocument();
+    $oldPath = $doc->path;
+
+    Livewire::test(MediaLibrary::class)
+        ->callAction('replaceMedia', ['file' => UploadedFile::fake()->create('new.pdf', 30, 'application/pdf')], ['media' => $doc->id])
+        ->assertHasNoActionErrors()
+        ->assertNotified(__('filament-media-manager::media.usage.replaced_document'));
+
+    $fresh = $doc->fresh();
+    expect(Media::query()->count())->toBe(1)
+        ->and($fresh->id)->toBe($doc->id)
+        ->and($fresh->file_name)->toBe('new.pdf')
+        ->and($fresh->path)->not->toBe($oldPath);
+    Storage::disk('public')->assertMissing($oldPath);
+    Storage::disk('public')->assertExists($fresh->path);
+});
+
+it('document replace refuses a mime outside the configured document list', function () {
+    Storage::fake('public');
+    config(['filament-media-manager.usage.document_mime_types' => ['application/pdf']]);
+    $doc = storedDocument();
+
+    expect(fn () => app(ReplaceMedia::class)->document($doc, UploadedFile::fake()->create('notes.txt', 5, 'text/plain')))
+        ->toThrow(InvalidArgumentException::class, __('filament-media-manager::media.usage.replace_document_type', ['types' => 'application/pdf']));
+});
+
+it('document replace accepts any non-image file without a configured list', function () {
+    Storage::fake('public');
+    $doc = storedDocument();
+
+    $result = app(ReplaceMedia::class)->document($doc, UploadedFile::fake()->create('notes.txt', 5, 'text/plain'));
+
+    expect($result->mime_type)->toBe('text/plain');
+});
+
+it('the document action refuses a disallowed mime with a form error and keeps the old file', function () {
+    Storage::fake('public');
+    config(['filament-media-manager.usage.document_mime_types' => ['application/pdf']]);
+    activateUsage();
+    Gate::define('replace-media', fn () => true);
+    $doc = storedDocument();
+    $oldPath = $doc->path;
+
+    Livewire::test(MediaLibrary::class)
+        ->callAction('replaceMedia', ['file' => UploadedFile::fake()->create('notes.txt', 5, 'text/plain')], ['media' => $doc->id])
+        ->assertHasActionErrors(['file']);
+
+    expect($doc->fresh()->path)->toBe($oldPath)->and($doc->fresh()->file_name)->toBe('old.pdf');
+    Storage::disk('public')->assertExists($oldPath);
+});
+
+it('the document action turns a refused replace into a danger notification', function () {
+    Storage::fake('public');
+    activateUsage();
+    Gate::define('replace-media', fn () => true);
+    $doc = storedDocument();
+    $oldPath = $doc->path;
+
+    Livewire::test(MediaLibrary::class)
+        ->callAction('replaceMedia', ['file' => UploadedFile::fake()->image('photo.jpg')], ['media' => $doc->id])
+        ->assertNotified(__('filament-media-manager::media.usage.replace_refused'));
+
+    expect($doc->fresh()->path)->toBe($oldPath);
+});
+
+it('picking the media being replaced is a form error', function () {
+    activateUsage();
+    Gate::define('replace-media', fn () => true);
+    $old = Media::factory()->create();
+    $value = placement($old);
+
+    Livewire::test(MediaLibrary::class)
+        ->callAction('replaceMedia', ['library_media_id' => $old->id], ['media' => $old->id])
+        ->assertHasActionErrors(['library_media_id']);
+
+    expect($value->fresh()->media_id)->toBe($old->id)->and(Media::find($old->id))->not->toBeNull();
+});
+
+it('giving both a file and a pick is a form error', function () {
+    Storage::fake('public');
+    config(['filament-media-manager.disk' => 'public']);
+    activateUsage();
+    Gate::define('replace-media', fn () => true);
+    $old = Media::factory()->create();
+    $new = Media::factory()->create();
+    $value = placement($old);
+
+    Livewire::test(MediaLibrary::class)
+        ->callAction('replaceMedia', ['file' => UploadedFile::fake()->image('dog.jpg'), 'library_media_id' => $new->id], ['media' => $old->id])
+        ->assertHasActionErrors(['library_media_id']);
+
+    expect($value->fresh()->media_id)->toBe($old->id)
+        ->and(Media::query()->where('file_name', 'dog.jpg')->exists())->toBeFalse();
+});
+
+it('a failed delete of the old media after the commit still reports success', function () {
+    activateUsage();
+    Gate::define('replace-media', fn () => true);
+    Exceptions::fake();
+    $old = Media::factory()->create();
+    $new = Media::factory()->create();
+    $value = placement($old);
+
+    Media::deleting(function (Media $media) use ($old) {
+        if ($media->id === $old->id) {
+            throw new RuntimeException('delete failed');
+        }
+    });
+
+    Livewire::test(MediaLibrary::class)
+        ->callAction('replaceMedia', ['library_media_id' => $new->id], ['media' => $old->id])
+        ->assertHasNoActionErrors()
+        ->assertNotified(trans_choice('filament-media-manager::media.usage.replaced', 1, ['count' => 1]));
+
+    expect($value->fresh()->media_id)->toBe($new->id);
+    Exceptions::assertReported(fn (RuntimeException $e) => $e->getMessage() === 'delete failed');
 });
