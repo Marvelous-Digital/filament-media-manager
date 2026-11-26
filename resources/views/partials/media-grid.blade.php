@@ -37,6 +37,10 @@
                 <span class="fmm-card-name" title="{{ $media->file_name }}">{{ $media->name }}</span>
             </div>
 
+            @if ($mode === 'manage' && in_array($media->id, $unusedIds ?? [], true))
+                <span class="fmm-unused-badge" data-unused>{{ __('filament-media-manager::media.usage.unused_badge') }}</span>
+            @endif
+
             @if ($mode === 'select')
                 <button type="button" class="fmm-card-overlay" wire:click="select({{ $media->id }})"
                     aria-label="{{ __('filament-media-manager::media.library.select_media', ['name' => $media->name]) }}"></button>

@@ -1,7 +1,6 @@
 <?php
 
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
@@ -22,27 +21,6 @@ beforeEach(function () {
 });
 
 afterEach(fn () => MediaUsage::resetTracking());
-
-function activateUsage(): void
-{
-    MediaUsage::tracked();
-    app(MediaUsage::class)->markIndexed();
-}
-
-function useMedia(Media $media, UsageSource $source, string $ownerType = 'App\Models\Page', int $ownerId = 7, ?int $revisionId = null): void
-{
-    DB::table(config('filament-media-manager.table_names.usages', 'media_manager_usages'))->insert([
-        'media_id' => $media->id,
-        'field_value_id' => null,
-        'owner_type' => $ownerType,
-        'owner_id' => (string) $ownerId,
-        'source' => $source->value,
-        'revision_id' => $revisionId,
-        'locale' => null,
-        'created_at' => now(),
-        'updated_at' => now(),
-    ]);
-}
 
 it('deleting a media used live throws MediaInUse when usage is active', function () {
     activateUsage();
@@ -146,4 +124,41 @@ it('bulk delete deletes the unused and reports the used', function () {
         );
 
     expect(Media::query()->pluck('id')->all())->toBe([$used->id]);
+});
+
+it('counts history owners by revision, not by usage row', function () {
+    activateUsage();
+    $media = Media::factory()->create();
+    useMedia($media, UsageSource::History, revisionId: 3, locale: 'fr');
+    useMedia($media, UsageSource::History, revisionId: 3, locale: 'en');
+
+    Livewire::test(MediaLibrary::class)
+        ->mountAction('deleteMedia', arguments: ['media' => $media->id])
+        ->tap(fn ($t) => expect((string) $t->instance()->getMountedAction()->getModalDescription())
+            ->toBe(__('filament-media-manager::media.usage.history_only_warning', ['count' => 1])));
+});
+
+it('describes each blocking owner once', function () {
+    activateUsage();
+    $media = Media::factory()->create();
+    useMedia($media, UsageSource::Live, ownerId: 1, locale: 'fr');
+    useMedia($media, UsageSource::Live, ownerId: 1, locale: 'en');
+    useMedia($media, UsageSource::Live, ownerId: 2);
+
+    $calls = new ArrayObject;
+    app()->bind(DescribesMediaOwners::class, fn () => new class($calls) extends FallbackOwnerDescriber
+    {
+        public function __construct(private ArrayObject $calls) {}
+
+        public function describe(Usage $usage): OwnerDescription
+        {
+            $this->calls[] = $usage->ownerId;
+
+            return parent::describe($usage);
+        }
+    });
+
+    $titles = Livewire::test(MediaLibrary::class)->instance()->ownersBlockingDelete($media->id);
+
+    expect($titles)->toBe(['Page #1', 'Page #2'])->and($calls)->toHaveCount(2);
 });

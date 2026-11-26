@@ -109,5 +109,12 @@ return [
         'in_use_body' => 'Used by :owners:more. Remove it from there first.',
         'history_only_warning' => 'This media appears in :count earlier versions. Deleting it removes it from the history too.',
         'bulk_skipped' => ':count media in use were not deleted',
+        'used_in' => 'Used in',
+        'live' => 'Live',
+        'draft' => 'Draft',
+        'history' => 'Only in history',
+        'not_used' => 'Not used anywhere',
+        'unused_badge' => 'Unused',
+        'shown_on' => 'Shown on :count pages',
     ],
 ];

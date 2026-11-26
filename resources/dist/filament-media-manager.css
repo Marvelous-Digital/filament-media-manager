@@ -120,3 +120,11 @@
 .fmm-document-meta { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .fmm-document-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fmm-document-info, .fmm-document-missing { font-size: 0.875rem; color: rgb(107 114 128); }
+.fmm-unused-badge { position: absolute; bottom: 2rem; right: 0.375rem; z-index: 1; padding: 0.0625rem 0.375rem; border-radius: 9999px; font-size: 0.6875rem; background: rgb(254 243 199); color: rgb(146 64 14); pointer-events: none; }
+.fmm-usages { display: grid; gap: 0.25rem; font-size: 0.875rem; }
+.fmm-usages-title { font-weight: 600; }
+.fmm-usages-heading { margin-top: 0.5rem; font-size: 0.75rem; text-transform: uppercase; color: rgb(107 114 128); }
+.fmm-usages-list, .fmm-usages-children { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.25rem; }
+.fmm-usages-children { padding-left: 1rem; }
+.fmm-usages a { text-decoration: underline; }
+.fmm-usages-detail, .fmm-usages-locales, .fmm-usages-empty { color: rgb(107 114 128); font-size: 0.8125rem; margin-left: 0.375rem; }

@@ -9,6 +9,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\WithFileUploads;
@@ -20,6 +21,8 @@ use MarvelousDigital\FilamentMediaManager\Models\MediaFolder;
 use MarvelousDigital\FilamentMediaManager\Usage\DescribesMediaOwners;
 use MarvelousDigital\FilamentMediaManager\Usage\MediaInUse;
 use MarvelousDigital\FilamentMediaManager\Usage\MediaUsage;
+use MarvelousDigital\FilamentMediaManager\Usage\OwnerDescription;
+use MarvelousDigital\FilamentMediaManager\Usage\Usage;
 use MarvelousDigital\FilamentMediaManager\Usage\UsageSource;
 
 class MediaLibrary extends Page
@@ -142,6 +145,9 @@ class MediaLibrary extends Page
             ->schema(fn (array $arguments): array => [
                 View::make('filament-media-manager::media-details')
                     ->viewData(['media' => Media::find((int) $arguments['media'])]),
+                View::make('filament-media-manager::partials.media-usages')
+                    ->viewData(fn (): array => ['groups' => $this->usageGroups((int) $arguments['media'])])
+                    ->visible(fn (): bool => app(MediaUsage::class)->isActive()),
                 TextInput::make('name')->label(__('filament-media-manager::media.fields.name'))->required()->maxLength(255),
                 Textarea::make('alt_text')->label(__('filament-media-manager::media.fields.alt_text'))->rows(3)->maxLength(255),
                 Select::make('folder_id')
@@ -191,15 +197,72 @@ class MediaLibrary extends Page
      */
     public function ownersBlockingDelete(int $mediaId, int $limit = 5): array
     {
+        $groups = $this->groupUsages(
+            app(MediaUsage::class)->usagesOf($mediaId)->filter(fn (Usage $usage) => $usage->source->blocksDelete())
+        );
         $describer = app(DescribesMediaOwners::class);
+        $titles = [];
 
-        return app(MediaUsage::class)->usagesOf($mediaId)
-            ->filter(fn ($usage) => $usage->source->blocksDelete())
-            ->map(fn ($usage) => $describer->describe($usage)->title)
-            ->unique()
-            ->take($limit)
-            ->values()
-            ->all();
+        foreach ($groups as $group) {
+            foreach ($group as $entry) {
+                $title = $describer->describe($entry['usage'])->title;
+
+                if (! in_array($title, $titles, true)) {
+                    $titles[] = $title;
+                }
+            }
+        }
+
+        return array_slice($titles, 0, $limit);
+    }
+
+    /**
+     * Where a media is used: per source (live, draft, history), one entry per owner and revision,
+     * with the locales it appears in.
+     *
+     * @return array{live: list<array{owner: OwnerDescription, locales: list<string>}>, draft: list<array{owner: OwnerDescription, locales: list<string>}>, history: list<array{owner: OwnerDescription, locales: list<string>}>}
+     */
+    public function usageGroups(int $mediaId): array
+    {
+        $describer = app(DescribesMediaOwners::class);
+        $result = [];
+
+        foreach ($this->groupUsages(app(MediaUsage::class)->usagesOf($mediaId)) as $source => $entries) {
+            $result[$source] = array_map(fn (array $entry) => [
+                'owner' => $describer->describe($entry['usage']),
+                'locales' => $entry['locales'],
+            ], $entries);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Groups usages by source (live, draft, history), then by owner type, id and revision.
+     *
+     * @param  Collection<int, Usage>  $usages
+     * @return array<string, list<array{usage: Usage, locales: list<string>}>>
+     */
+    protected function groupUsages(Collection $usages): array
+    {
+        $groups = [];
+
+        foreach (UsageSource::cases() as $source) {
+            $groups[$source->value] = [];
+        }
+
+        foreach ($usages as $usage) {
+            $key = $usage->ownerType . '|' . $usage->ownerId . '|' . $usage->revisionId;
+            $entry = $groups[$usage->source->value][$key] ?? ['usage' => $usage, 'locales' => []];
+
+            if ($usage->locale !== null && ! in_array($usage->locale, $entry['locales'], true)) {
+                $entry['locales'][] = $usage->locale;
+            }
+
+            $groups[$usage->source->value][$key] = $entry;
+        }
+
+        return array_map(fn (array $entries) => array_values($entries), $groups);
     }
 
     protected function historyOnlyCount(int $mediaId): int
@@ -210,7 +273,7 @@ class MediaLibrary extends Page
             return 0;
         }
 
-        return $usage->usagesOf($mediaId)->where('source', UsageSource::History)->count();
+        return count($this->groupUsages($usage->usagesOf($mediaId))[UsageSource::History->value]);
     }
 
     protected function notifyInUse(?Media $media): void

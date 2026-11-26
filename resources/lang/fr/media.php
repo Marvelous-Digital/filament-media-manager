@@ -109,5 +109,12 @@ return [
         'in_use_body' => 'Utilisé par :owners:more. Retirez-le d’abord de ces contenus.',
         'history_only_warning' => 'Ce média apparaît dans :count versions antérieures. Le supprimer le retire aussi de l’historique.',
         'bulk_skipped' => ':count média(s) utilisé(s) non supprimé(s)',
+        'used_in' => 'Utilisé dans',
+        'live' => 'En ligne',
+        'draft' => 'Brouillon',
+        'history' => 'Uniquement dans l’historique',
+        'not_used' => 'Utilisé nulle part',
+        'unused_badge' => 'Inutilisé',
+        'shown_on' => 'Affiché sur :count pages',
     ],
 ];
