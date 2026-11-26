@@ -7,12 +7,14 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Concerns\HasFileAttachments;
 use Filament\Forms\Components\Field;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Component;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\View\View;
 use MarvelousDigital\FilamentMediaManager\Actions\PersistImagesPicker;
 use MarvelousDigital\FilamentMediaManager\Forms\Components\Concerns\HandlesPickedImages;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
+use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
 use MarvelousDigital\FilamentMediaManager\Support\ImagesPickerState;
 
 /**
@@ -76,6 +78,18 @@ class ImagesPicker extends Field
         });
 
         $this->registerActions([
+            fn (): Action => Action::make('confirmAlt')
+                ->action(function (array $arguments, Component $component): void {
+                    if (! $component instanceof ImagesPicker) {
+                        return;
+                    }
+
+                    $id = $component->getPickerItemId((string) ($arguments['key'] ?? ''));
+
+                    if ($id !== null) {
+                        MediaFieldValue::find($id)?->confirmAlt();
+                    }
+                }),
             fn (): Action => Action::make('select')
                 ->modalHeading(__('filament-media-manager::media.picker.add_images'))
                 ->modalWidth(Width::FiveExtraLarge)
@@ -207,6 +221,45 @@ class ImagesPicker extends Field
             ->get()
             ->mapWithKeys(fn (Media $media): array => [$media->id => $media->thumbnailUrl() ?? $media->url()])
             ->all();
+    }
+
+    /**
+     * The saved row id of the item with this key, only when the server loaded that item (its token verifies).
+     */
+    public function getPickerItemId(string $key): ?int
+    {
+        foreach ($this->getPickerState()['items'] as $item) {
+            if ($item['key'] === $key) {
+                return $item['id'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Keys of the items whose saved row is flagged "alt to check", read from the database.
+     *
+     * @return list<string>
+     */
+    public function getAltCheckKeys(): array
+    {
+        $items = array_filter($this->getPickerState()['items'], fn (array $item): bool => $item['id'] !== null);
+
+        if ($items === []) {
+            return [];
+        }
+
+        $flagged = MediaFieldValue::query()
+            ->whereKey(array_column($items, 'id'))
+            ->where('alt_check_required', true)
+            ->pluck('id')
+            ->all();
+
+        return array_values(array_map(
+            fn (array $item): string => $item['key'],
+            array_filter($items, fn (array $item): bool => in_array($item['id'], $flagged, true)),
+        ));
     }
 
     /**

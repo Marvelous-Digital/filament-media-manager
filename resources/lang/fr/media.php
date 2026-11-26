@@ -117,4 +117,9 @@ return [
         'unused_badge' => 'Inutilisé',
         'shown_on' => 'Affiché sur 1 page|Affiché sur :count pages',
     ],
+
+    'alt_check' => [
+        'notice' => 'Image remplacée : vérifiez le texte alternatif',
+        'confirm' => 'Le texte alternatif est correct',
+    ],
 ];

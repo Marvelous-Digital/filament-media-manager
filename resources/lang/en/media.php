@@ -117,4 +117,9 @@ return [
         'unused_badge' => 'Unused',
         'shown_on' => 'Shown on 1 page|Shown on :count pages',
     ],
+
+    'alt_check' => [
+        'notice' => 'Image replaced: check the alt text',
+        'confirm' => 'Alt is fine',
+    ],
 ];

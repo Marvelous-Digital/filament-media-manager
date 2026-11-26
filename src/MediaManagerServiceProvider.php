@@ -24,7 +24,7 @@ class MediaManagerServiceProvider extends PackageServiceProvider
             ->hasConfigFile()
             ->hasViews(static::$viewNamespace)
             ->hasTranslations()
-            ->hasMigrations(['create_filament_media_manager_tables', 'create_media_field_tables', 'update_media_field_tables_for_base_focus', 'update_media_field_values_for_decorative', 'create_media_usages_table'])
+            ->hasMigrations(['create_filament_media_manager_tables', 'create_media_field_tables', 'update_media_field_tables_for_base_focus', 'update_media_field_values_for_decorative', 'update_media_field_values_for_alt_check', 'create_media_usages_table'])
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command
                     ->publishConfigFile()

@@ -14,6 +14,7 @@
     $hasImage = filled($state['media_id'] ?? null);
     $media = $field->getMediaPayload();
     $saved = $field->getSavedValue();
+    $needsAltCheck = $saved?->alt_check_required ?? false;
     $isGenerating = $saved?->conversions->contains(fn ($conversion): bool => $conversion->status === ConversionStatus::Pending) ?? false;
 @endphp
 
@@ -155,6 +156,20 @@
         }"
     >
         <span hidden data-fmm-media x-init="media = @js($media)"></span>
+
+        @if ($needsAltCheck)
+            <x-filament::callout color="warning" icon="heroicon-o-exclamation-triangle" :heading="__('filament-media-manager::media.alt_check.notice')">
+                <x-slot name="controls">
+                    <x-filament::button
+                        size="xs"
+                        color="gray"
+                        x-on:click="$wire.mountAction('confirmAlt', {}, { schemaComponent: {{ (string) Js::from($key) }} })"
+                    >
+                        {{ __('filament-media-manager::media.alt_check.confirm') }}
+                    </x-filament::button>
+                </x-slot>
+            </x-filament::callout>
+        @endif
 
         <input type="file" accept="image/*" class="fmm-upload-input" x-ref="upload-main" x-on:change="upload('main', $event.target.files); $event.target.value = null" />
 
