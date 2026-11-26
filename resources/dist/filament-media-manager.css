@@ -121,10 +121,35 @@
 .fmm-document-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fmm-document-info, .fmm-document-missing { font-size: 0.875rem; color: rgb(107 114 128); }
 .fmm-unused-badge { position: absolute; bottom: 2rem; right: 0.375rem; z-index: 1; padding: 0.0625rem 0.375rem; border-radius: 9999px; font-size: 0.6875rem; background: rgb(254 243 199); color: rgb(146 64 14); pointer-events: none; }
-.fmm-usages { display: grid; gap: 0.25rem; font-size: 0.875rem; }
-.fmm-usages-title { font-weight: 600; }
-.fmm-usages-heading { margin-top: 0.5rem; font-size: 0.75rem; text-transform: uppercase; color: rgb(107 114 128); }
-.fmm-usages-list, .fmm-usages-children { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.25rem; }
-.fmm-usages-children { padding-left: 1rem; }
-.fmm-usages a { text-decoration: underline; }
-.fmm-usages-detail, .fmm-usages-locales, .fmm-usages-empty { color: rgb(107 114 128); font-size: 0.8125rem; margin-left: 0.375rem; }
+.fmm-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.fmm-usages { display: grid; gap: 0.75rem; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid rgb(229 231 235); font-size: 0.875rem; }
+.dark .fmm-usages { border-top-color: rgb(255 255 255 / 0.1); }
+.fmm-usages-title { font-size: 0.875rem; font-weight: 600; color: rgb(17 24 39); }
+.dark .fmm-usages-title { color: rgb(243 244 246); }
+.fmm-usages-empty { display: flex; align-items: center; gap: 0.5rem; color: rgb(107 114 128); }
+.fmm-usages-empty-icon { width: 1.25rem; height: 1.25rem; color: rgb(22 163 74); }
+.fmm-usages-group { display: grid; gap: 0.5rem; }
+.fmm-usages-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.fmm-usages-hint { font-size: 0.75rem; color: rgb(107 114 128); }
+.dark .fmm-usages-hint { color: rgb(156 163 175); }
+.fmm-usages-list { list-style: none; padding: 0; margin: 0; border: 1px solid rgb(229 231 235); border-radius: 0.5rem; overflow: hidden; }
+.dark .fmm-usages-list { border-color: rgb(255 255 255 / 0.1); }
+.fmm-usages-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.25rem 0.75rem; padding: 0.5rem 0.75rem; }
+.fmm-usages-item + .fmm-usages-item { border-top: 1px solid rgb(229 231 235); }
+.dark .fmm-usages-item + .fmm-usages-item { border-top-color: rgb(255 255 255 / 0.1); }
+.fmm-usages-main { min-width: 0; }
+.fmm-usages-name { font-weight: 500; color: rgb(17 24 39); overflow-wrap: anywhere; }
+.dark .fmm-usages-name { color: rgb(243 244 246); }
+.fmm-usages-link { display: inline-flex; align-items: center; gap: 0.25rem; }
+.fmm-usages-link:hover { color: var(--primary-600); text-decoration: underline; }
+.dark .fmm-usages-link:hover { color: var(--primary-400); }
+.fmm-usages-link-icon { width: 0.875rem; height: 0.875rem; flex-shrink: 0; color: rgb(156 163 175); }
+.fmm-usages-detail { font-size: 0.75rem; color: rgb(107 114 128); }
+.dark .fmm-usages-detail { color: rgb(156 163 175); }
+.fmm-usages-locales { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.25rem; }
+.fmm-usages-pages { grid-column: 1 / -1; display: grid; gap: 0.25rem; padding-left: 0.75rem; border-left: 2px solid rgb(229 231 235); }
+.dark .fmm-usages-pages { border-left-color: rgb(255 255 255 / 0.1); }
+.fmm-usages-children { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.125rem; font-size: 0.8125rem; }
+.fmm-usages-more { justify-self: start; font-size: 0.8125rem; font-weight: 500; color: var(--primary-600); }
+.fmm-usages-more:hover { text-decoration: underline; }
+.dark .fmm-usages-more { color: var(--primary-400); }

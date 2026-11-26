@@ -66,7 +66,8 @@ it('details list live draft and history groups', function () {
 
     $html = detailsHtml($media);
 
-    expect($html)->toContain('Live', 'Draft', 'Only in history', 'Title 1', 'Title 2', 'Title 3', 'FR, EN', 'href="/admin/pages/1"', 'target="_blank"');
+    expect($html)->toContain('Live', 'Draft', 'Earlier versions', 'Kept in the page history.', 'Title 1', 'Title 2', 'Title 3', 'href="/admin/pages/1"', 'target="_blank"')
+        ->and($html)->toMatch('/>\s*FR\s*</')->toMatch('/>\s*EN\s*</');
 });
 
 it('usageGroups groups by source then owner and revision', function () {
@@ -210,4 +211,27 @@ it('describes a group with its locale only when it spans exactly one locale', fu
 
     $locales = collect($calls)->mapWithKeys(fn (Usage $usage) => [$usage->ownerId => $usage->locale])->all();
     expect($locales)->toBe(['1' => null, '2' => 'de']);
+});
+
+it('says a media used only in earlier versions can be deleted', function () {
+    activateUsage();
+    bindDescriber();
+    $media = Media::factory()->create();
+    useMedia($media, UsageSource::History, ownerId: 3, revisionId: 9);
+
+    expect(detailsHtml($media))->toContain('Earlier versions', 'Can be deleted')->not->toContain('Kept in the page history.');
+});
+
+it('shows five entries per group and hides the rest behind show more', function () {
+    activateUsage();
+    bindDescriber();
+    $media = Media::factory()->create();
+    foreach (range(1, 7) as $owner) {
+        useMedia($media, UsageSource::Live, ownerId: $owner);
+    }
+
+    $html = detailsHtml($media);
+
+    expect(substr_count($html, 'x-show="all"'))->toBe(3) // 2 hidden rows + the "Show less" label
+        ->and($html)->toContain('Show 2 more', 'Live · 7');
 });

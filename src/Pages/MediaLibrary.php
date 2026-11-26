@@ -154,9 +154,6 @@ class MediaLibrary extends Page
             ->schema(fn (array $arguments): array => [
                 View::make('filament-media-manager::media-details')
                     ->viewData(['media' => Media::find((int) $arguments['media'])]),
-                View::make('filament-media-manager::partials.media-usages')
-                    ->viewData(fn (): array => ['groups' => $this->usageGroups((int) $arguments['media'])])
-                    ->visible(fn (): bool => app(MediaUsage::class)->isActive()),
                 TextInput::make('name')->label(__('filament-media-manager::media.fields.name'))->required()->maxLength(255),
                 Textarea::make('alt_text')->label(__('filament-media-manager::media.fields.alt_text'))->rows(3)->maxLength(255),
                 Select::make('folder_id')
@@ -164,6 +161,9 @@ class MediaLibrary extends Page
                     ->options(MediaFolder::treeOptions())
                     ->placeholder(__('filament-media-manager::media.fields.root'))
                     ->nullable(),
+                View::make('filament-media-manager::partials.media-usages')
+                    ->viewData(fn (): array => ['groups' => $this->usageGroups((int) $arguments['media'])])
+                    ->visible(fn (): bool => app(MediaUsage::class)->isActive()),
             ])
             ->extraModalFooterActions(fn (array $arguments): array => $this->canReplace()
                 ? [$this->replaceMediaAction()->arguments(['media' => (int) $arguments['media']])->color('gray')]
