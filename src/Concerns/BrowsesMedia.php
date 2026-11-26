@@ -11,6 +11,7 @@ use MarvelousDigital\FilamentMediaManager\Actions\UploadMedia;
 use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFolder;
+use MarvelousDigital\FilamentMediaManager\Usage\MediaUsage;
 
 trait BrowsesMedia
 {
@@ -24,6 +25,12 @@ trait BrowsesMedia
 
     /** @var array<UploadedFile> */
     public array $uploads = [];
+
+    /** Whether the grid shows the Unused badge (the library does, the picker does not). */
+    protected function marksUnused(): bool
+    {
+        return false;
+    }
 
     protected function imagesOnly(): bool
     {
@@ -179,6 +186,8 @@ trait BrowsesMedia
         $mediaItems = $this->mediaQuery()->limit($limit + 1)->get();
         $hasMore = $mediaItems->count() > $limit;
 
+        $mediaItems = $mediaItems->take($limit);
+        $usage = app(MediaUsage::class);
         $current = $this->currentFolder();
 
         return [
@@ -186,7 +195,8 @@ trait BrowsesMedia
                 ->where('parent_id', $this->folderId)
                 ->orderBy('name')
                 ->get(),
-            'mediaItems' => $mediaItems->take($limit),
+            'mediaItems' => $mediaItems,
+            'unusedIds' => $this->marksUnused() && $usage->isActive() ? $usage->unusedAmong($mediaItems->pluck('id')->all()) : [],
             'hasMore' => $hasMore,
             'currentFolder' => $current,
             'breadcrumbFolders' => $current ? [...$current->ancestors(), $current] : [],

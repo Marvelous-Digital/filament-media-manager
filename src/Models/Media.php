@@ -11,6 +11,8 @@ use MarvelousDigital\FilamentMediaManager\Enums\ConversionStatus;
 use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
 use MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateConversion;
+use MarvelousDigital\FilamentMediaManager\Usage\MediaInUse;
+use MarvelousDigital\FilamentMediaManager\Usage\MediaUsage;
 use Throwable;
 
 /**
@@ -58,9 +60,25 @@ class Media extends Model
         ];
     }
 
+    /**
+     * @return bool|null
+     *
+     * @throws MediaInUse when the media is used and the usage index is active
+     */
+    public function delete()
+    {
+        return parent::delete();
+    }
+
     protected static function booted(): void
     {
         static::deleting(function (self $media): void {
+            $usage = app(MediaUsage::class);
+
+            if ($usage->isActive() && $usage->blocksDelete($media->id)) {
+                throw MediaInUse::for($media);
+            }
+
             MediaConversion::query()
                 ->where('media_id', $media->id)
                 ->each(function (MediaConversion $conversion): void {

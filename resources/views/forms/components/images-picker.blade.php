@@ -5,6 +5,8 @@
     $key = $getKey();
     $items = $field->getVerifiedState()['items'];
     $thumbnails = $field->getThumbnails();
+    $altCheckKeys = $field->getAltCheckKeys();
+    $canConfirmAlt = ! $field->isDisabled();
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">
@@ -87,6 +89,21 @@
                                 x-on:click.stop="call('removeImage', { key: {{ $jsKey }} })"
                             />
                         </div>
+                        @if (in_array($item['key'], $altCheckKeys, true))
+                            <x-filament::callout color="warning" icon="heroicon-o-exclamation-triangle" :heading="__('filament-media-manager::media.alt_check.notice')">
+                                @if ($canConfirmAlt)
+                <x-slot name="controls">
+                                    <x-filament::button
+                                        size="xs"
+                                        color="gray"
+                                        x-on:click="$wire.mountAction('confirmAlt', { key: {{ $jsKey }} }, { schemaComponent: {{ (string) Js::from($key) }} })"
+                                    >
+                                        {{ __('filament-media-manager::media.alt_check.confirm') }}
+                                    </x-filament::button>
+                                </x-slot>
+                                @endif
+                            </x-filament::callout>
+                        @endif
                         <x-filament::input.wrapper>
                             <x-filament::input
                                 type="text"

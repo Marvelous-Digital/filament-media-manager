@@ -81,6 +81,12 @@ class ImagePicker extends Field
         });
 
         $this->registerActions([
+            fn (): Action => Action::make('confirmAlt')
+                ->disabled(fn (): bool => $this->isDisabled())
+                ->action(function (Component $component): void {
+                    // Only the row this picker loaded (a verified id), never one the browser names.
+                    $component instanceof ImagePicker ? $component->getSavedValue()?->confirmAlt() : null;
+                }),
             fn (): Action => Action::make('select')
                 ->modalHeading(__('filament-media-manager::media.picker.select_image'))
                 ->modalWidth(Width::FiveExtraLarge)

@@ -54,6 +54,11 @@ class PersistImagePicker
         }
 
         $value = $existing ?? new MediaFieldValue(['created_by' => Auth::id()]);
+        $baseline = $existing ?? ($replaces !== null
+            ? MediaFieldValue::query()->with('conversions')->find($replaces)
+            : null);
+        $baselineAlts = $baseline !== null && $baseline->alt_check_required ? $this->alts($baseline) : null;
+        $baselineMediaId = $baseline?->media_id;
         $mainImageChanged = $value->exists && $value->media_id !== (int) $state['media_id'];
 
         $value->fill([
@@ -129,7 +134,47 @@ class PersistImagePicker
         // Collection first to get plain array-key filtering by variation name.
         $conversions->toBase()->except(array_keys($variations))->each->delete();
 
+        $this->carryAltCheck($value, $baselineAlts, $baselineMediaId);
+
         return $value->id;
+    }
+
+    /**
+     * The "alt to check" flag follows the image: a row saved from a flagged one keeps the flag while
+     * the main image and every alt text (base and variation overrides) are unchanged. An alt edit,
+     * another image or a decorative image clears it. Never sets it on an unflagged row.
+     *
+     * @param  array<string, string>|null  $baselineAlts  null when the baseline row is not flagged
+     */
+    private function carryAltCheck(MediaFieldValue $value, ?array $baselineAlts, ?int $baselineMediaId): void
+    {
+        $keep = $baselineAlts !== null
+            && ! $value->decorative
+            && $baselineMediaId === $value->media_id
+            && $baselineAlts === $this->alts($value->load('conversions'));
+
+        if ((bool) $value->alt_check_required !== $keep) {
+            $value->alt_check_required = $keep;
+            $value->saveQuietly();
+        }
+    }
+
+    /**
+     * The non-blank alt texts of a row: the base one under '' and one per variation.
+     *
+     * @return array<string, string>
+     */
+    private function alts(MediaFieldValue $value): array
+    {
+        $alts = ['' => (string) $value->alt_text];
+
+        foreach ($value->conversions as $conversion) {
+            $alts[$conversion->variation] = (string) $conversion->alt_text;
+        }
+
+        ksort($alts);
+
+        return array_filter($alts, fn (string $alt): bool => trim($alt) !== '');
     }
 
     /**

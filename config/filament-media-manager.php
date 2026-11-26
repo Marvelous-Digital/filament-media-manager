@@ -34,5 +34,15 @@ return [
         'folders' => 'media_manager_folders',
         'field_values' => 'media_manager_field_values',
         'conversions' => 'media_manager_conversions',
+        'usages' => 'media_manager_usages',
+        'usage_state' => 'media_manager_usage_state',
+    ],
+
+    'usage' => [
+        // Ability (Gate) required to replace a media everywhere it is used. The action is hidden without it.
+        'replace_ability' => 'replace-media',
+        // Mime types a document may be replaced with (list of strings). null accepts any non-image file.
+        // A host that only renders some document types (e.g. CTA downloads) sets it to that list.
+        'document_mime_types' => null,
     ],
 ];

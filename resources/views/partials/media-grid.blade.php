@@ -37,6 +37,10 @@
                 <span class="fmm-card-name" title="{{ $media->file_name }}">{{ $media->name }}</span>
             </div>
 
+            @if ($mode === 'manage' && in_array($media->id, $unusedIds ?? [], true))
+                <span class="fmm-unused-badge" data-unused>{{ __('filament-media-manager::media.usage.unused_badge') }}</span>
+            @endif
+
             @if ($mode === 'select')
                 <button type="button" class="fmm-card-overlay" wire:click="select({{ $media->id }})"
                     aria-label="{{ __('filament-media-manager::media.library.select_media', ['name' => $media->name]) }}"></button>
@@ -52,6 +56,10 @@
                     @if ($media->thumbnail_status === \MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus::Failed)
                         <x-filament::icon-button icon="heroicon-o-arrow-path" color="warning" size="sm" label="{{ __('filament-media-manager::media.actions.retry_thumbnail') }}"
                             wire:click="mountAction('retryThumbnail', { media: {{ $media->id }} })" />
+                    @endif
+                    @if ($canReplace ?? false)
+                        <x-filament::icon-button icon="heroicon-o-arrows-right-left" color="gray" size="sm" label="{{ __('filament-media-manager::media.usage.replace') }}"
+                            wire:click="mountAction('replaceMedia', { media: {{ $media->id }} })" />
                     @endif
                     <x-filament::icon-button icon="heroicon-o-trash" color="danger" size="sm" label="{{ __('filament-media-manager::media.actions.delete') }}"
                         wire:click="mountAction('deleteMedia', { media: {{ $media->id }} })" />

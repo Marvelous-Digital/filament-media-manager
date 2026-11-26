@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use MarvelousDigital\FilamentMediaManager\Events\AltCheckConfirmed;
 use Throwable;
 
 /**
@@ -18,6 +19,7 @@ use Throwable;
  * @property float $focus_x
  * @property float $focus_y
  * @property bool $decorative
+ * @property bool $alt_check_required
  * @property int|null $created_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -28,7 +30,7 @@ class MediaFieldValue extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['media_id', 'alt_text', 'focus_x', 'focus_y', 'decorative', 'created_by'];
+    protected $fillable = ['media_id', 'alt_text', 'focus_x', 'focus_y', 'decorative', 'alt_check_required', 'created_by'];
 
     protected function casts(): array
     {
@@ -36,6 +38,7 @@ class MediaFieldValue extends Model
             'focus_x' => 'float',
             'focus_y' => 'float',
             'decorative' => 'boolean',
+            'alt_check_required' => 'boolean',
         ];
     }
 
@@ -100,6 +103,15 @@ class MediaFieldValue extends Model
         }
 
         return $this->alt_text;
+    }
+
+    /** The editor checked the alt text after a replacement: clears the flag in place (metadata, not image content). */
+    public function confirmAlt(): void
+    {
+        $this->alt_check_required = false;
+        $this->saveQuietly();
+
+        AltCheckConfirmed::dispatch($this);
     }
 
     public function directory(): string
