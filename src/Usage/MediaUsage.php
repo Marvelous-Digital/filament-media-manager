@@ -200,7 +200,7 @@ class MediaUsage
 
         $table = config('filament-media-manager.table_names.media', 'media_manager_media');
 
-        return DB::table($table)->whereIn('id', $ids)->pluck('id')->mapWithKeys(fn ($id) => [(int) $id => true])->all();
+        return array_fill_keys(DB::table($table)->whereIn('id', $ids)->pluck('id')->map(fn ($id) => (int) $id)->all(), true);
     }
 
     protected function scope(string $ownerType, int | string $ownerId, ?UsageSource $source, ?int $revisionId, bool $exact = false): Builder

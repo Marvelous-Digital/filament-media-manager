@@ -60,6 +60,14 @@ class Media extends Model
         ];
     }
 
+    /**
+     * @throws MediaInUse when the media is used and the usage index is active
+     */
+    public function delete()
+    {
+        return parent::delete();
+    }
+
     protected static function booted(): void
     {
         static::deleting(function (self $media): void {

@@ -2,6 +2,16 @@
 
 All notable changes to `filament-media-manager` will be documented in this file.
 
+## v0.4.0 - Unreleased
+
+- Media usage index: new table `media_manager_usages` (migration `create_media_usages_table`, which also creates `media_manager_usage_state`) records where each media is used (owner, source `live`/`draft`/`history`, optional revision and locale). The host application fills it with `MediaUsage::sync()`, `forget()` and `forgetRevision()`, and reads it with `usagesOf()`. It stays inactive until the host calls `MediaUsage::tracked()` (boot) and `markIndexed()` once the index is built, so installs that do not track usages behave as before.
+- Deleting a media that is live or in a draft is refused while the index is active: the library shows a "Used in" list instead of a delete button, bulk delete skips such media, and `Media` deleting throws `MediaInUse`. History-only usages warn but do not block.
+- "Used in" in the media detail slide-over, with a "Shown on N pages" badge in the library grid. Owners are described through the `DescribesMediaOwners` contract (returns an `OwnerDescription`: title, url, detail, children), bound with `bindIf` to a fallback describer; hosts rebind it.
+- Replace everywhere: `ReplaceMedia::image($old, $new)` repoints every placement, crop override and usage row to another image and deletes the old media when nothing references it; `ReplaceMedia::document($old, $file)` swaps the file of a document in place (same id, name and folder). The library action is hidden unless the user passes the `usage.replace_ability` gate (default `replace-media`).
+- Replaced images are flagged `alt_check_required` (decorative ones excepted): the picker shows an "Alt is fine" confirmation to clear the flag.
+- Config: added `table_names.usages`, `table_names.usage_state` and `usage.replace_ability`. Translations: added `usage.*` and the "Alt is fine" strings (English + French).
+- Upgrade: publish the migrations (`--tag=filament-media-manager-migrations`) and run `php artisan migrate` (`create_media_usages_table`, `update_media_field_values_for_alt_check`); republish the config to get the new keys. Hosts that want usage tracking call `MediaUsage::tracked()` in a service provider, sync their owners, then call `app(MediaUsage::class)->markIndexed()` once the index is built.
+
 ## v0.3.0 - 2026-11-17
 
 - `ImagePicker` opens an image of a database not yet migrated for the base focus point and decorative flag (centred, not decorative) instead of failing with a TypeError; saving still needs `update_media_field_tables_for_base_focus` and `update_media_field_values_for_decorative`.

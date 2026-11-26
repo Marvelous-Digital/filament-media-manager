@@ -94,6 +94,13 @@ return [
         'folders' => 'media_manager_folders',
         'field_values' => 'media_manager_field_values',
         'conversions' => 'media_manager_conversions',
+        'usages' => 'media_manager_usages',
+        'usage_state' => 'media_manager_usage_state',
+    ],
+
+    'usage' => [
+        // Ability (Gate) required to replace a media everywhere it is used. The action is hidden without it.
+        'replace_ability' => 'replace-media',
     ],
 ];
 ```
@@ -117,6 +124,7 @@ return [
 - **`thumbnail.queue`** — when `true` (the default), thumbnail generation is dispatched to the queue after upload, so the request returns immediately and the grid shows a pending state until the job finishes. Set to `false` to generate the thumbnail synchronously during the upload request instead — useful for local development without a queue worker running, or for a `sync` queue connection.
 - **`thumbnail.queue_name`** — the queue name the `GenerateThumbnail` job is dispatched to. `null` uses the connection's default queue.
 - **`per_page`** — number of items fetched per "Load more" click in the media grid.
+- **`usage.replace_ability`** — the Gate ability a user needs to replace a media everywhere it is used (default `replace-media`). Without it the action is hidden. See [Media usage](#media-usage).
 - **`table_names`** — the database tables the package creates and reads. The defaults are prefixed with `media_manager_` so the package can be installed next to `spatie/laravel-medialibrary` (and plugins built on it, such as `ralphjsmit/laravel-filament-media-library`), which own a `media` table. Change them before running the migrations: the published migrations read them too.
 
   **Upgrading from an install that created unprefixed tables** (`media`, `media_folders`, `media_field_values`, `media_conversions`): either keep those names by setting them in your published config, or rename the tables in a migration of your own.
@@ -277,6 +285,73 @@ DocumentPicker::make('brochure_id')
 ```
 
 The field shows the file name, format and size, with change and remove actions. On save it fails validation with "This file is no longer in the library." when the id no longer exists or its mime type is not in the list. Read the file back with `$field->getSelectedMedia()` in a form, or `Media::find($id)?->url()` elsewhere.
+
+## Media usage
+
+The library can show where each media is used, refuse to delete media that is in use, and replace a media everywhere at once. The package does not know your content, so your application keeps an index and the library reads it.
+
+Until you opt in, none of this is active and the library behaves as before.
+
+### Tracking contract
+
+1. Publish and run the migrations (`create_media_usages_table`, `update_media_field_values_for_alt_check`).
+2. Declare tracking in a service provider's `boot()`: `MediaUsage::tracked();`
+3. Keep the index up to date from your models, with `MarvelousDigital\FilamentMediaManager\Usage\MediaUsage`:
+
+```php
+$usage = app(MediaUsage::class);
+
+// Replace every row of (owner, source, revision) with these references.
+$usage->sync(Page::class, $page->id, UsageSource::Live, null, [
+    ['field_value_id' => $page->hero_id],               // an ImagePicker value (covers crop overrides too)
+    ['media_id' => $page->brochure_id, 'locale' => 'fr'], // a plain library media
+]);
+
+$usage->forget(Page::class, $page->id);        // every source and revision of the owner
+$usage->forgetRevision($revision->id);         // one revision, e.g. when it is pruned
+```
+
+`UsageSource` is `Live`, `Draft` or `History`. Live and draft usages block deletion; history usages only show up in the "Used in" list.
+
+4. Build the index once for existing content (sync every owner), then call `app(MediaUsage::class)->markIndexed()`. `isActive()` is true only when the host called `tracked()` and the index was marked as built, so an empty, never-built index cannot make everything look deletable.
+
+`usagesOf($mediaId)` returns the `Usage` objects of a media.
+
+### Deleting media in use
+
+While the index is active, a media with a live or draft usage cannot be deleted: the library shows its usages instead of a delete button, bulk delete skips it, and deleting the model throws `MediaInUse`.
+
+### Describing owners
+
+The "Used in" list asks the `DescribesMediaOwners` contract how to present each usage. A fallback describer is bound with `bindIf`; rebind it to return a title and link for your own models:
+
+```php
+use MarvelousDigital\FilamentMediaManager\Usage\{DescribesMediaOwners, OwnerDescription, Usage};
+
+class DescribesOwners implements DescribesMediaOwners
+{
+    public function describe(Usage $usage): OwnerDescription
+    {
+        $page = Page::find($usage->ownerId);
+
+        return new OwnerDescription(
+            title: $page->title,
+            url: PageResource::getUrl('edit', ['record' => $page]),
+            detail: $usage->locale,
+        );
+    }
+}
+
+$this->app->bind(DescribesMediaOwners::class, DescribesOwners::class);
+```
+
+`OwnerDescription` also takes `children` (nested descriptions, e.g. the blocks of a page).
+
+### Replacing a media everywhere
+
+`ReplaceMedia::image($old, $new)` repoints every placement, crop override and usage row of `$old` to `$new` and deletes `$old` once nothing references it; it returns the number of placements. Crops are regenerated, and each replaced image is flagged `alt_check_required` (decorative images excepted) so the `ImagePicker` shows an "Alt is fine" confirmation until an editor reviews the alt text. `ReplaceMedia::document($old, $file)` swaps the file of a document in place: same id, name and folder.
+
+The library action is shown only to users who pass the `usage.replace_ability` gate (default `replace-media`); define it, e.g. `Gate::define('replace-media', fn ($user) => ...)`.
 
 ## Translations
 
