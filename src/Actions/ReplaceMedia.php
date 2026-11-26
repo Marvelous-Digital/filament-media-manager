@@ -97,25 +97,35 @@ class ReplaceMedia
         $oldThumbnail = $old->thumbnail_path;
         $path = $file->storeAs($old->directory(), Str::ulid() . '-' . $fileName, ['disk' => $old->disk]);
 
-        $old->update([
-            'file_name' => $fileName,
-            'path' => $path,
-            'mime_type' => $mimeType,
-            'type' => MediaType::fromMimeType($mimeType),
-            'size' => $file->getSize(),
-            'width' => null,
-            'height' => null,
-            'thumbnail_path' => null,
-            'thumbnail_status' => ThumbnailStatus::Pending,
-        ]);
+        try {
+            $old->update([
+                'file_name' => $fileName,
+                'path' => $path,
+                'mime_type' => $mimeType,
+                'type' => MediaType::fromMimeType($mimeType),
+                'size' => $file->getSize(),
+                'width' => null,
+                'height' => null,
+                'thumbnail_path' => null,
+                'thumbnail_status' => ThumbnailStatus::Pending,
+            ]);
+        } catch (Throwable $e) {
+            Storage::disk($old->disk)->delete($path);
+
+            throw $e;
+        }
 
         GenerateThumbnail::dispatchFor($old);
 
-        try {
-            Storage::disk($old->disk)->delete(array_filter([$oldPath, $oldThumbnail]));
-        } catch (Throwable) {
-            // Best-effort cleanup of the previous file.
-        }
+        $disk = $old->disk;
+
+        DB::afterCommit(function () use ($disk, $oldPath, $oldThumbnail): void {
+            try {
+                Storage::disk($disk)->delete(array_filter([$oldPath, $oldThumbnail]));
+            } catch (Throwable) {
+                // Best-effort cleanup of the previous file.
+            }
+        });
 
         return $old->refresh();
     }

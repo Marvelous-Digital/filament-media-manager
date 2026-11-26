@@ -239,7 +239,17 @@ class MediaLibrary extends Page
                     return;
                 }
 
-                $count = app(ReplaceMedia::class)->image($old, $new);
+                $created = empty($data['library_media_id']);
+
+                try {
+                    $count = app(ReplaceMedia::class)->image($old, $new);
+                } catch (\Throwable $e) {
+                    if ($created) {
+                        $new->delete();
+                    }
+
+                    throw $e;
+                }
 
                 Notification::make()
                     ->success()

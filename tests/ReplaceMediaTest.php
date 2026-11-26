@@ -2,6 +2,7 @@
 
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -216,4 +217,40 @@ it('the details footer button replaces the media', function () {
         ->assertHasNoActionErrors();
 
     expect($value->fresh()->media_id)->toBe($new->id);
+});
+
+it('a document replace inside a rolled-back transaction keeps the old file', function () {
+    Storage::fake('public');
+    $path = UploadedFile::fake()->create('old.pdf', 10, 'application/pdf')->storeAs('media/01DOC', 'old.pdf', ['disk' => 'public']);
+    $doc = Media::factory()->create(['file_name' => 'old.pdf', 'path' => $path, 'mime_type' => 'application/pdf', 'type' => MediaType::Document]);
+
+    DB::beginTransaction();
+    app(ReplaceMedia::class)->document($doc, UploadedFile::fake()->create('new.pdf', 30, 'application/pdf'));
+    DB::rollBack();
+
+    Storage::disk('public')->assertExists($path);
+    expect($doc->fresh()->path)->toBe($path);
+});
+
+it('a failed library upload replace removes the media it created', function () {
+    Storage::fake('public');
+    config(['filament-media-manager.disk' => 'public']);
+    activateUsage();
+    Gate::define('replace-media', fn () => true);
+    $old = Media::factory()->create();
+    app()->bind(ReplaceMedia::class, fn () => new class extends ReplaceMedia
+    {
+        public function image(Media $old, Media $new): int
+        {
+            throw new RuntimeException('boom');
+        }
+    });
+
+    try {
+        Livewire::test(MediaLibrary::class)
+            ->callAction('replaceMedia', ['file' => UploadedFile::fake()->image('dog.jpg')], ['media' => $old->id]);
+    } catch (RuntimeException) {
+    }
+
+    expect(Media::query()->where('file_name', 'dog.jpg')->exists())->toBeFalse();
 });
