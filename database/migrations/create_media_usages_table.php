@@ -19,15 +19,16 @@ return new class extends Migration
             $table->foreignId('media_id')->constrained($tables['media'])->cascadeOnDelete();
             $table->foreignId('field_value_id')->nullable()->constrained($tables['field_values'])->cascadeOnDelete();
             $table->string('owner_type');
-            $table->string('owner_id');
-            $table->string('source');
+            $table->string('owner_id', 64);
+            $table->string('source', 16);
             $table->unsignedBigInteger('revision_id')->nullable();
             $table->string('locale')->nullable();
             $table->timestamps();
 
             $table->index('media_id');
             $table->index('field_value_id');
-            $table->index(['owner_type', 'owner_id', 'source', 'revision_id']);
+            // Named by hand: the generated name passes MySQL's 64 character identifier limit.
+            $table->index(['owner_type', 'owner_id', 'source', 'revision_id'], $tables['usages'] . '_owner_index');
         });
 
         Schema::create($tables['usage_state'], function (Blueprint $table) {

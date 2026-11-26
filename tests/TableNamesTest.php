@@ -67,3 +67,10 @@ it('creates the usage tables when a pre-0.4.0 published config lacks their table
     expect(Schema::hasTable('media_manager_usages'))->toBeTrue()
         ->and(Schema::hasTable('media_manager_usage_state'))->toBeTrue();
 });
+
+it('keeps every usage index name within the MySQL 64 character limit', function () {
+    $names = collect(Schema::getIndexes('media_manager_usages'))->pluck('name');
+
+    expect($names)->not->toBeEmpty()
+        ->and($names->filter(fn (string $name) => strlen($name) > 64)->all())->toBe([]);
+});
