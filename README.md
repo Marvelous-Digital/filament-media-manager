@@ -311,7 +311,7 @@ $usage->forget(Page::class, $page->id);        // every source and revision of t
 $usage->forgetRevision($revision->id);         // one revision, e.g. when it is pruned
 ```
 
-`UsageSource` is `Live`, `Draft` or `History`. Live and draft usages block deletion; history usages only show up in the "Used in" list. The library grid marks media without any usage with an "Unused" badge, and shows a "Shown on N pages" badge on the others.
+`UsageSource` is `Live`, `Draft` or `History`. Live and draft usages block deletion; history usages only show up in the "Used in" list. While usage tracking is active, the library grid (not the picker) marks media without any usage with an "Unused" badge. The "Used in" list shows "Shown on N pages" under an owner recorded globally.
 
 4. Build the index once for existing content (sync every owner), then call `app(MediaUsage::class)->markIndexed()`. `isActive()` is true only when the host called `tracked()` and the index was marked as built, so an empty, never-built index cannot make everything look deletable.
 
