@@ -130,6 +130,14 @@ class ReplaceMedia
         return $old->refresh();
     }
 
+    /** Deletes a freshly created media nobody references (after a failed replace). */
+    public function discardIfUnreferenced(Media $media): void
+    {
+        if (! $this->isReferenced($media)) {
+            $media->delete();
+        }
+    }
+
     protected function isReferenced(Media $media): bool
     {
         return MediaFieldValue::query()->where('media_id', $media->id)->exists()

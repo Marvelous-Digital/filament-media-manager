@@ -254,3 +254,30 @@ it('a failed library upload replace removes the media it created', function () {
 
     expect(Media::query()->where('file_name', 'dog.jpg')->exists())->toBeFalse();
 });
+
+it('a failure after the replace committed leaves the new media and its moved rows intact', function () {
+    Storage::fake('public');
+    config(['filament-media-manager.disk' => 'public']);
+    activateUsage();
+    Gate::define('replace-media', fn () => true);
+    $old = Media::factory()->create();
+    $value = placement($old);
+    useMedia($old, UsageSource::Live);
+
+    Media::deleting(function (Media $media) use ($old) {
+        if ($media->id === $old->id) {
+            throw new RuntimeException('delete failed');
+        }
+    });
+
+    try {
+        Livewire::test(MediaLibrary::class)
+            ->callAction('replaceMedia', ['file' => UploadedFile::fake()->image('dog.jpg')], ['media' => $old->id]);
+    } catch (RuntimeException) {
+    }
+
+    $new = Media::query()->where('file_name', 'dog.jpg')->first();
+    expect($new)->not->toBeNull()
+        ->and($value->fresh()->media_id)->toBe($new->id)
+        ->and(MediaUsageRow::query()->where('media_id', $new->id)->count())->toBe(1);
+});

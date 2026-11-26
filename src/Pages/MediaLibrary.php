@@ -228,25 +228,24 @@ class MediaLibrary extends Page
                     return;
                 }
 
-                if (! empty($data['library_media_id'])) {
-                    $new = Media::query()->where('type', MediaType::Image->value)->find((int) $data['library_media_id']);
-                } else {
-                    $new = $file instanceof UploadedFile ? app(UploadMedia::class)->execute($file, $old->folder) : null;
-                    $new?->update(['alt_text' => $old->alt_text]);
-                }
-
-                if (! $new) {
-                    return;
-                }
-
-                $created = empty($data['library_media_id']);
+                $created = null;
 
                 try {
+                    if (! empty($data['library_media_id'])) {
+                        $new = Media::query()->where('type', MediaType::Image->value)->find((int) $data['library_media_id']);
+                    } else {
+                        $new = $created = $file instanceof UploadedFile ? app(UploadMedia::class)->execute($file, $old->folder) : null;
+                        $new?->update(['alt_text' => $old->alt_text]);
+                    }
+
+                    if (! $new) {
+                        return;
+                    }
+
                     $count = app(ReplaceMedia::class)->image($old, $new);
                 } catch (\Throwable $e) {
-                    if ($created) {
-                        $new->delete();
-                    }
+                    // Only drop the upload when the replace did not commit: once it did, it owns the moved rows.
+                    $created && app(ReplaceMedia::class)->discardIfUnreferenced($created);
 
                     throw $e;
                 }
