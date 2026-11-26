@@ -27,7 +27,7 @@
                             <span class="fmm-usages-locales">{{ collect($group['locales'])->map(fn ($locale) => mb_strtoupper($locale))->implode(', ') }}</span>
                         @endif
                         @if ($group['owner']->children !== [])
-                            <span class="fmm-usages-detail">{{ __('filament-media-manager::media.usage.shown_on', ['count' => count($group['owner']->children)]) }}</span>
+                            <span class="fmm-usages-detail">{{ trans_choice('filament-media-manager::media.usage.shown_on', count($group['owner']->children)) }}</span>
                             <ul class="fmm-usages-children">
                                 @foreach ($group['owner']->children as $child)
                                     <li>

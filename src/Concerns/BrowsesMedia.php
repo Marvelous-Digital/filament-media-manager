@@ -26,6 +26,12 @@ trait BrowsesMedia
     /** @var array<UploadedFile> */
     public array $uploads = [];
 
+    /** Whether the grid shows the Unused badge (the library does, the picker does not). */
+    protected function marksUnused(): bool
+    {
+        return false;
+    }
+
     protected function imagesOnly(): bool
     {
         return false;
@@ -190,7 +196,7 @@ trait BrowsesMedia
                 ->orderBy('name')
                 ->get(),
             'mediaItems' => $mediaItems,
-            'unusedIds' => $usage->isActive() ? $usage->unusedAmong($mediaItems->pluck('id')->all()) : [],
+            'unusedIds' => $this->marksUnused() && $usage->isActive() ? $usage->unusedAmong($mediaItems->pluck('id')->all()) : [],
             'hasMore' => $hasMore,
             'currentFolder' => $current,
             'breadcrumbFolders' => $current ? [...$current->ancestors(), $current] : [],

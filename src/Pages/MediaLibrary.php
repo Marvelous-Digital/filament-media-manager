@@ -379,6 +379,11 @@ class MediaLibrary extends Page
             });
     }
 
+    protected function marksUnused(): bool
+    {
+        return true;
+    }
+
     protected function afterOpenFolder(): void
     {
         $this->selected = [];

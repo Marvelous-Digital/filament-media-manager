@@ -115,6 +115,6 @@ return [
         'history' => 'Uniquement dans l’historique',
         'not_used' => 'Utilisé nulle part',
         'unused_badge' => 'Inutilisé',
-        'shown_on' => 'Affiché sur :count pages',
+        'shown_on' => 'Affiché sur 1 page|Affiché sur :count pages',
     ],
 ];

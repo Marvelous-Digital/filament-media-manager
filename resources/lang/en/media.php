@@ -115,6 +115,6 @@ return [
         'history' => 'Only in history',
         'not_used' => 'Not used anywhere',
         'unused_badge' => 'Unused',
-        'shown_on' => 'Shown on :count pages',
+        'shown_on' => 'Shown on 1 page|Shown on :count pages',
     ],
 ];

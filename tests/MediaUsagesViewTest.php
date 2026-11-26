@@ -1,7 +1,9 @@
 <?php
 
 use Filament\Schemas\Components\View;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
+use MarvelousDigital\FilamentMediaManager\Livewire\MediaPickerBrowser;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Pages\MediaLibrary;
 use MarvelousDigital\FilamentMediaManager\Usage\DescribesMediaOwners;
@@ -35,13 +37,19 @@ function bindDescriber(?array $children = null): void
     });
 }
 
+function usagesView($schema): View
+{
+    return collect($schema->getComponents(withHidden: true))
+        ->first(fn ($component) => $component instanceof View && str_contains((string) (fn () => $this->view)->call($component), 'media-usages'));
+}
+
 /** The rendered HTML of the details schema of the media's editMedia action. */
 function detailsHtml(Media $media): string
 {
     $page = Livewire::test(MediaLibrary::class)->mountAction('editMedia', arguments: ['media' => $media->id]);
     $schema = (fn () => $this->getMountedActionSchema())->call($page->instance());
 
-    $view = collect($schema->getComponents())
+    $view = collect($schema->getComponents(withHidden: true))
         ->first(fn ($component) => $component instanceof View && str_contains((string) (fn () => $this->view)->call($component), 'media-usages'));
 
     return $view?->isVisible() ? $view->toHtml() : '';
@@ -113,5 +121,34 @@ it('nothing is shown when usage is inactive', function () {
 
     Livewire::test(MediaLibrary::class)->assertDontSeeHtml('data-unused');
 
-    expect(detailsHtml($media))->not->toContain('Not used anywhere')->not->toContain('Used in');
+    $page = Livewire::test(MediaLibrary::class)->mountAction('editMedia', arguments: ['media' => $media->id]);
+    $view = usagesView((fn () => $this->getMountedActionSchema())->call($page->instance()));
+
+    expect($view)->not->toBeNull()->and($view->isVisible())->toBeFalse()
+        ->and(detailsHtml($media))->toBe('');
+});
+
+it('plural of the shown-on count', function () {
+    activateUsage();
+    bindDescriber(['Only page']);
+    $media = Media::factory()->create();
+    useMedia($media, UsageSource::Live, ownerId: 5);
+
+    expect(detailsHtml($media))->toContain('Shown on 1 page')->not->toContain('1 pages');
+
+    bindDescriber(['A', 'B']);
+
+    expect(detailsHtml($media))->toContain('Shown on 2 pages');
+});
+
+it('the picker renders no badge and runs no usage query', function () {
+    activateUsage();
+    Media::factory()->create(['type' => 'image']);
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $html = Livewire::test(MediaPickerBrowser::class, ['statePath' => 'data.hero', 'target' => 'main'])->html();
+    $usageQueries = collect(DB::getQueryLog())->filter(fn ($q) => str_contains($q['query'], 'media_manager_usages'));
+
+    expect($html)->not->toContain('data-unused')->and($usageQueries)->toHaveCount(0);
 });
