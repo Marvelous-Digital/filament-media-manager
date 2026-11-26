@@ -4,6 +4,7 @@ namespace MarvelousDigital\FilamentMediaManager\Usage;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
@@ -47,7 +48,12 @@ class MediaUsage
             return false;
         }
 
-        return $this->active ??= $this->stateTable()->whereNotNull('indexed_at')->exists();
+        try {
+            return $this->active ??= $this->stateTable()->whereNotNull('indexed_at')->exists();
+        } catch (QueryException) {
+            // A host that upgraded but has not migrated yet: the usage features are simply off.
+            return false;
+        }
     }
 
     public function markIndexed(): void

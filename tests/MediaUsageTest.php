@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Schema;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
@@ -187,4 +188,11 @@ it('sync dedupes the same placement and locale', function () {
     ]);
 
     expect(MediaUsageRow::count())->toBe(2);
+});
+
+it('isActive is false, not an error, when the state table is missing', function () {
+    MediaUsage::tracked();
+    Schema::drop(config('filament-media-manager.table_names.usage_state'));
+
+    expect(app(MediaUsage::class)->isActive())->toBeFalse();
 });
