@@ -116,6 +116,12 @@ return [
         'not_used' => 'Utilisé nulle part',
         'unused_badge' => 'Inutilisé',
         'shown_on' => 'Affiché sur 1 page|Affiché sur :count pages',
+        'replace' => 'Remplacer',
+        'replace_description' => 'Tous les contenus qui utilisent ce média afficheront le nouveau.',
+        'replace_upload' => 'Téléverser un nouveau fichier',
+        'replace_pick' => 'Ou choisir une image de la médiathèque',
+        'replaced' => '{0} Remplacé, aucun emplacement à mettre à jour|{1} Remplacé sur :count emplacement|[2,*] Remplacé sur :count emplacements',
+        'replaced_document' => 'Fichier remplacé',
     ],
 
     'alt_check' => [

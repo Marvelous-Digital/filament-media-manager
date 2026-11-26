@@ -3,17 +3,23 @@
 namespace MarvelousDigital\FilamentMediaManager\Pages;
 
 use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\View;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\WithFileUploads;
+use MarvelousDigital\FilamentMediaManager\Actions\ReplaceMedia;
+use MarvelousDigital\FilamentMediaManager\Actions\UploadMedia;
 use MarvelousDigital\FilamentMediaManager\Concerns\BrowsesMedia;
+use MarvelousDigital\FilamentMediaManager\Enums\MediaType;
 use MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateThumbnail;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
@@ -156,6 +162,9 @@ class MediaLibrary extends Page
                     ->placeholder(__('filament-media-manager::media.fields.root'))
                     ->nullable(),
             ])
+            ->extraModalFooterActions(fn (array $arguments): array => $this->canReplace()
+                ? [$this->replaceMediaAction()->arguments(['media' => (int) $arguments['media']])->color('gray')]
+                : [])
             ->action(function (array $arguments, array $data): void {
                 Media::find((int) $arguments['media'])?->update([
                     'name' => $data['name'],
@@ -163,6 +172,86 @@ class MediaLibrary extends Page
                     'folder_id' => $data['folder_id'],
                 ]);
             });
+    }
+
+    public function replaceMediaAction(): Action
+    {
+        return Action::make('replaceMedia')
+            ->label(__('filament-media-manager::media.usage.replace'))
+            ->icon('heroicon-o-arrow-path')
+            ->modalHeading(__('filament-media-manager::media.usage.replace'))
+            ->modalDescription(__('filament-media-manager::media.usage.replace_description'))
+            ->visible(fn (): bool => $this->canReplace())
+            ->schema(function (array $arguments): array {
+                $media = Media::find((int) ($arguments['media'] ?? 0));
+                $isImage = $media?->type === MediaType::Image;
+
+                return [
+                    FileUpload::make('file')
+                        ->label(__('filament-media-manager::media.usage.replace_upload'))
+                        ->storeFiles(false)
+                        ->maxFiles(1)
+                        ->acceptedFileTypes($isImage ? ['image/*'] : [])
+                        ->required(! $isImage)
+                        ->requiredWithout($isImage ? 'library_media_id' : null),
+                    Select::make('library_media_id')
+                        ->label(__('filament-media-manager::media.usage.replace_pick'))
+                        ->searchable()
+                        ->getSearchResultsUsing(fn (string $search): array => Media::query()
+                            ->where('type', MediaType::Image->value)
+                            ->whereKeyNot($media?->id)
+                            ->where('name', 'like', '%' . $search . '%')
+                            ->orderBy('name')
+                            ->limit(50)
+                            ->pluck('name', 'id')
+                            ->all())
+                        ->getOptionLabelUsing(fn ($value): ?string => Media::query()->whereKey($value)->value('name'))
+                        ->requiredWithout('file')
+                        ->visible($isImage),
+                ];
+            })
+            ->action(function (array $arguments, array $data): void {
+                $old = Media::find((int) $arguments['media']);
+
+                if (! $old || ! $this->canReplace()) {
+                    return;
+                }
+
+                $file = $data['file'] ?? null;
+                $file = is_array($file) ? (reset($file) ?: null) : $file;
+
+                if ($old->type !== MediaType::Image) {
+                    app(ReplaceMedia::class)->document($old, $file);
+
+                    Notification::make()->success()->title(__('filament-media-manager::media.usage.replaced_document'))->send();
+
+                    return;
+                }
+
+                if (! empty($data['library_media_id'])) {
+                    $new = Media::query()->where('type', MediaType::Image->value)->find((int) $data['library_media_id']);
+                } else {
+                    $new = $file instanceof UploadedFile ? app(UploadMedia::class)->execute($file, $old->folder) : null;
+                    $new?->update(['alt_text' => $old->alt_text]);
+                }
+
+                if (! $new) {
+                    return;
+                }
+
+                $count = app(ReplaceMedia::class)->image($old, $new);
+
+                Notification::make()
+                    ->success()
+                    ->title(trans_choice('filament-media-manager::media.usage.replaced', $count, ['count' => $count]))
+                    ->send();
+            });
+    }
+
+    protected function canReplace(): bool
+    {
+        return app(MediaUsage::class)->isActive()
+            && Gate::allows(config('filament-media-manager.usage.replace_ability', 'replace-media'));
     }
 
     public function deleteMediaAction(): Action
@@ -391,6 +480,6 @@ class MediaLibrary extends Page
 
     protected function getViewData(): array
     {
-        return $this->browseData();
+        return $this->browseData() + ['canReplace' => $this->canReplace()];
     }
 }

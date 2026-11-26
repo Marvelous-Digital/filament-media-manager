@@ -53,7 +53,7 @@ class UploadMedia
         return $media;
     }
 
-    protected function validate(UploadedFile $file): void
+    public function validate(UploadedFile $file): void
     {
         $accepted = config('filament-media-manager.accepted_mime_types');
 
@@ -72,7 +72,7 @@ class UploadMedia
         }
     }
 
-    protected function sanitizeFileName(string $fileName): string
+    public function sanitizeFileName(string $fileName): string
     {
         $fileName = basename(str_replace('\\', '/', $fileName));
         $fileName = str_replace(['..', '#', '?'], '', $fileName);
@@ -83,7 +83,7 @@ class UploadMedia
     /**
      * @return array{0: int|null, 1: int|null}
      */
-    protected function dimensions(UploadedFile $file, MediaType $type): array
+    public function dimensions(UploadedFile $file, MediaType $type): array
     {
         if ($type !== MediaType::Image) {
             return [null, null];

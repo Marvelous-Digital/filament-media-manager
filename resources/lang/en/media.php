@@ -116,6 +116,12 @@ return [
         'not_used' => 'Not used anywhere',
         'unused_badge' => 'Unused',
         'shown_on' => 'Shown on 1 page|Shown on :count pages',
+        'replace' => 'Replace',
+        'replace_description' => 'Every place that uses this media will show the new one.',
+        'replace_upload' => 'Upload a new file',
+        'replace_pick' => 'Or pick an image from the library',
+        'replaced' => '{0} Replaced, no placement to update|{1} Replaced on :count placement|[2,*] Replaced on :count placements',
+        'replaced_document' => 'File replaced',
     ],
 
     'alt_check' => [
