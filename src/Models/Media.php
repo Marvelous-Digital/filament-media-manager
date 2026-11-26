@@ -61,6 +61,8 @@ class Media extends Model
     }
 
     /**
+     * @return bool|null
+     *
      * @throws MediaInUse when the media is used and the usage index is active
      */
     public function delete()

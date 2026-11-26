@@ -12,14 +12,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table(config('filament-media-manager.table_names.field_values'), function (Blueprint $table) {
+        Schema::table(config('filament-media-manager.table_names.field_values', 'media_manager_field_values'), function (Blueprint $table) {
             $table->boolean('alt_check_required')->default(false);
         });
     }
 
     public function down(): void
     {
-        Schema::table(config('filament-media-manager.table_names.field_values'), function (Blueprint $table) {
+        Schema::table(config('filament-media-manager.table_names.field_values', 'media_manager_field_values'), function (Blueprint $table) {
             $table->dropColumn('alt_check_required');
         });
     }

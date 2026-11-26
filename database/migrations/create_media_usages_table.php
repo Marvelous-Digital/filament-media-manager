@@ -12,7 +12,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $tables = config('filament-media-manager.table_names');
+        $tables = $this->tables();
 
         Schema::create($tables['usages'], function (Blueprint $table) use ($tables) {
             $table->id();
@@ -38,9 +38,26 @@ return new class extends Migration
 
     public function down(): void
     {
-        $tables = config('filament-media-manager.table_names');
+        $tables = $this->tables();
 
         Schema::dropIfExists($tables['usage_state']);
         Schema::dropIfExists($tables['usages']);
+    }
+
+    /**
+     * A config published before this table existed replaces table_names whole, so every key falls back.
+     *
+     * @return array{media: string, field_values: string, usages: string, usage_state: string}
+     */
+    protected function tables(): array
+    {
+        $names = config('filament-media-manager.table_names', []);
+
+        return [
+            'media' => $names['media'] ?? 'media_manager_media',
+            'field_values' => $names['field_values'] ?? 'media_manager_field_values',
+            'usages' => $names['usages'] ?? 'media_manager_usages',
+            'usage_state' => $names['usage_state'] ?? 'media_manager_usage_state',
+        ];
     }
 };

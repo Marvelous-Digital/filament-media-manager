@@ -50,3 +50,20 @@ it('creates the tables under the configured names', function () {
         ->and(Schema::hasTable('custom_usages'))->toBeTrue()
         ->and(Schema::hasTable('custom_usage_state'))->toBeTrue();
 });
+
+it('creates the usage tables when a pre-0.4.0 published config lacks their table names', function () {
+    config()->set('filament-media-manager.table_names', [
+        'media' => 'media_manager_media',
+        'folders' => 'media_manager_folders',
+        'field_values' => 'media_manager_field_values',
+        'conversions' => 'media_manager_conversions',
+    ]);
+
+    Schema::dropIfExists('media_manager_usage_state');
+    Schema::dropIfExists('media_manager_usages');
+
+    (require __DIR__ . '/../database/migrations/create_media_usages_table.php')->up();
+
+    expect(Schema::hasTable('media_manager_usages'))->toBeTrue()
+        ->and(Schema::hasTable('media_manager_usage_state'))->toBeTrue();
+});
