@@ -104,4 +104,10 @@ return [
         'zoom' => 'Zoom',
         'zoom_warning' => 'Zoom au-delà de la résolution source — l’image sera agrandie et pourrait paraître floue.',
     ],
+    'usage' => [
+        'in_use_title' => 'Média utilisé',
+        'in_use_body' => 'Utilisé par :owners:more. Retirez-le d’abord de ces contenus.',
+        'history_only_warning' => 'Ce média apparaît dans :count versions antérieures. Le supprimer le retire aussi de l’historique.',
+        'bulk_skipped' => ':count média(s) utilisé(s) non supprimé(s)',
+    ],
 ];

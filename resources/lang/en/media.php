@@ -104,4 +104,10 @@ return [
         'zoom' => 'Zoom',
         'zoom_warning' => 'Zoomed past the source resolution — the image will be upscaled and may look soft.',
     ],
+    'usage' => [
+        'in_use_title' => 'Media in use',
+        'in_use_body' => 'Used by :owners:more. Remove it from there first.',
+        'history_only_warning' => 'This media appears in :count earlier versions. Deleting it removes it from the history too.',
+        'bulk_skipped' => ':count media in use were not deleted',
+    ],
 ];

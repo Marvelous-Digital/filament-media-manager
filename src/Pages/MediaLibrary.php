@@ -17,6 +17,10 @@ use MarvelousDigital\FilamentMediaManager\Enums\ThumbnailStatus;
 use MarvelousDigital\FilamentMediaManager\Jobs\GenerateThumbnail;
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFolder;
+use MarvelousDigital\FilamentMediaManager\Usage\DescribesMediaOwners;
+use MarvelousDigital\FilamentMediaManager\Usage\MediaInUse;
+use MarvelousDigital\FilamentMediaManager\Usage\MediaUsage;
+use MarvelousDigital\FilamentMediaManager\Usage\UsageSource;
 
 class MediaLibrary extends Page
 {
@@ -162,9 +166,71 @@ class MediaLibrary extends Page
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->requiresConfirmation()
+            ->modalDescription(function (array $arguments): ?string {
+                $count = $this->historyOnlyCount((int) ($arguments['media'] ?? 0));
+
+                return $count > 0
+                    ? __('filament-media-manager::media.usage.history_only_warning', ['count' => $count])
+                    : null;
+            })
             ->action(function (array $arguments): void {
-                Media::find((int) $arguments['media'])?->delete();
+                $media = Media::find((int) $arguments['media']);
+
+                try {
+                    $media?->delete();
+                } catch (MediaInUse) {
+                    $this->notifyInUse($media);
+                }
             });
+    }
+
+    /**
+     * Titles of the owners that block deleting a media (live or draft), deduplicated.
+     *
+     * @return list<string>
+     */
+    public function ownersBlockingDelete(int $mediaId, int $limit = 5): array
+    {
+        $describer = app(DescribesMediaOwners::class);
+
+        return app(MediaUsage::class)->usagesOf($mediaId)
+            ->filter(fn ($usage) => $usage->source->blocksDelete())
+            ->map(fn ($usage) => $describer->describe($usage)->title)
+            ->unique()
+            ->take($limit)
+            ->values()
+            ->all();
+    }
+
+    protected function historyOnlyCount(int $mediaId): int
+    {
+        $usage = app(MediaUsage::class);
+
+        if (! $usage->isActive() || $usage->blocksDelete($mediaId)) {
+            return 0;
+        }
+
+        return $usage->usagesOf($mediaId)->where('source', UsageSource::History)->count();
+    }
+
+    protected function notifyInUse(?Media $media): void
+    {
+        if (! $media) {
+            return;
+        }
+
+        $all = $this->ownersBlockingDelete($media->id, PHP_INT_MAX);
+        $owners = array_slice($all, 0, 5);
+        $more = count($all) - count($owners);
+
+        Notification::make()
+            ->danger()
+            ->title(__('filament-media-manager::media.usage.in_use_title'))
+            ->body(__('filament-media-manager::media.usage.in_use_body', [
+                'owners' => implode(', ', $owners),
+                'more' => $more > 0 ? ' +' . $more : '',
+            ]))
+            ->send();
     }
 
     public function downloadMediaAction(): Action
@@ -209,8 +275,25 @@ class MediaLibrary extends Page
             ->requiresConfirmation()
             ->modalHeading(__('filament-media-manager::media.actions.delete_selected_heading'))
             ->action(function (): void {
-                Media::query()->whereIn('id', $this->selected)->get()->each->delete();
+                $skipped = [];
+
+                foreach (Media::query()->whereIn('id', $this->selected)->get() as $media) {
+                    try {
+                        $media->delete();
+                    } catch (MediaInUse) {
+                        $skipped[] = $media->name;
+                    }
+                }
+
                 $this->selected = [];
+
+                if ($skipped !== []) {
+                    Notification::make()
+                        ->warning()
+                        ->title(__('filament-media-manager::media.usage.bulk_skipped', ['count' => count($skipped)]))
+                        ->body(implode(', ', $skipped))
+                        ->send();
+                }
             });
     }
 

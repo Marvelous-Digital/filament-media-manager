@@ -5,6 +5,8 @@ namespace MarvelousDigital\FilamentMediaManager;
 use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
 use Livewire\Livewire;
+use MarvelousDigital\FilamentMediaManager\Usage\DescribesMediaOwners;
+use MarvelousDigital\FilamentMediaManager\Usage\FallbackOwnerDescriber;
 use MarvelousDigital\FilamentMediaManager\Usage\MediaUsage;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
@@ -34,6 +36,7 @@ class MediaManagerServiceProvider extends PackageServiceProvider
     public function packageRegistered(): void
     {
         $this->app->singleton(MediaUsage::class);
+        $this->app->bindIf(DescribesMediaOwners::class, FallbackOwnerDescriber::class);
     }
 
     public function packageBooted(): void
