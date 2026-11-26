@@ -3,6 +3,7 @@
 use MarvelousDigital\FilamentMediaManager\Models\Media;
 use MarvelousDigital\FilamentMediaManager\Models\MediaConversion;
 use MarvelousDigital\FilamentMediaManager\Models\MediaFieldValue;
+use MarvelousDigital\FilamentMediaManager\Models\MediaUsageRow;
 use MarvelousDigital\FilamentMediaManager\Usage\MediaUsage;
 use MarvelousDigital\FilamentMediaManager\Usage\UsageSource;
 
@@ -138,7 +139,7 @@ it('blocksDelete is true for a draft row', function () {
 it('unknown field value ids are skipped', function () {
     $this->usage->sync('App\Page', 1, UsageSource::Live, null, [['field_value_id' => 99999], ['media_id' => 99999], []]);
 
-    expect($this->usage->usagesOf(99999))->toBeEmpty();
+    expect(MediaUsageRow::count())->toBe(0);
 });
 
 it('isActive needs tracked and indexed', function () {
@@ -158,4 +159,32 @@ it('unusedAmong returns ids without rows', function () {
 
     expect($this->usage->unusedAmong([$used->media_id, $free->id]))->toBe([$free->id])
         ->and($this->usage->unusedAmong([]))->toBe([]);
+});
+
+it('sync revision matching is exact', function () {
+    $value = MediaFieldValue::factory()->create();
+    $ref = [['field_value_id' => $value->id]];
+    $this->usage->sync('App\Page', 1, UsageSource::Draft, 7, $ref);
+    $this->usage->sync('App\Page', 1, UsageSource::Draft, 8, $ref);
+    $this->usage->sync('App\Page', 1, UsageSource::Draft, null, $ref);
+
+    $this->usage->sync('App\Page', 1, UsageSource::Draft, 7, []);
+
+    expect(MediaUsageRow::pluck('revision_id')->all())->toEqualCanonicalizing([8, null]);
+
+    $this->usage->sync('App\Page', 1, UsageSource::Draft, null, []);
+
+    expect(MediaUsageRow::pluck('revision_id')->all())->toBe([8]);
+});
+
+it('sync dedupes the same placement and locale', function () {
+    $value = MediaFieldValue::factory()->create();
+
+    $this->usage->sync('App\Page', 1, UsageSource::Live, null, [
+        ['field_value_id' => $value->id, 'locale' => 'fr'],
+        ['field_value_id' => $value->id, 'locale' => 'fr'],
+        ['field_value_id' => $value->id, 'locale' => 'en'],
+    ]);
+
+    expect(MediaUsageRow::count())->toBe(2);
 });

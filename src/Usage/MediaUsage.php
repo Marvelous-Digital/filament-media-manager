@@ -2,6 +2,7 @@
 
 namespace MarvelousDigital\FilamentMediaManager\Usage;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,8 @@ class MediaUsage
 {
     protected static bool $tracked = false;
 
+    protected ?bool $active = null;
+
     /** The host declares that it keeps the index up to date. */
     public static function tracked(): void
     {
@@ -27,6 +30,10 @@ class MediaUsage
     public static function resetTracking(): void
     {
         static::$tracked = false;
+
+        if (function_exists('app') && app()->bound(self::class)) {
+            app(self::class)->active = null;
+        }
     }
 
     public function isTracked(): bool
@@ -36,11 +43,16 @@ class MediaUsage
 
     public function isActive(): bool
     {
-        return static::$tracked && $this->stateTable()->whereNotNull('indexed_at')->exists();
+        if (! static::$tracked) {
+            return false;
+        }
+
+        return $this->active ??= $this->stateTable()->whereNotNull('indexed_at')->exists();
     }
 
     public function markIndexed(): void
     {
+        $this->active = null;
         $state = $this->stateTable();
 
         if ($state->exists()) {
@@ -59,51 +71,51 @@ class MediaUsage
      */
     public function sync(string $ownerType, int | string $ownerId, UsageSource $source, ?int $revisionId, array $references): void
     {
-        $fieldValueIds = collect($references)->pluck('field_value_id')->filter()->unique()->all();
-        $values = $fieldValueIds === []
-            ? collect()
-            : MediaFieldValue::query()->whereIn('id', $fieldValueIds)->get(['id', 'media_id'])->keyBy('id');
-        $overrides = $fieldValueIds === []
-            ? collect()
-            : MediaConversion::query()
-                ->whereIn('media_field_value_id', $fieldValueIds)
-                ->whereNotNull('media_id')
-                ->get(['media_field_value_id', 'media_id'])
-                ->groupBy('media_field_value_id');
+        DB::transaction(function () use ($ownerType, $ownerId, $source, $revisionId, $references): void {
+            $fieldValueIds = collect($references)->pluck('field_value_id')->filter()->unique()->all();
+            $values = $fieldValueIds === []
+                ? collect()
+                : MediaFieldValue::query()->whereIn('id', $fieldValueIds)->get(['id', 'media_id'])->keyBy('id');
+            $overrides = $fieldValueIds === []
+                ? collect()
+                : MediaConversion::query()
+                    ->whereIn('media_field_value_id', $fieldValueIds)
+                    ->whereNotNull('media_id')
+                    ->get(['media_field_value_id', 'media_id'])
+                    ->groupBy('media_field_value_id');
 
-        $existingMedia = $this->existingMediaIds(
-            collect($references)->pluck('media_id')->filter()->unique()->all()
-        );
+            $existingMedia = $this->existingMediaIds(
+                collect($references)->pluck('media_id')->filter()->unique()->all()
+            );
 
-        $now = now();
-        $rows = [];
+            $now = now();
+            $rows = [];
 
-        foreach ($references as $reference) {
-            $locale = $reference['locale'] ?? null;
+            foreach ($references as $reference) {
+                $locale = $reference['locale'] ?? null;
 
-            if (! empty($reference['field_value_id'])) {
-                $value = $values->get($reference['field_value_id']);
+                if (! empty($reference['field_value_id'])) {
+                    $value = $values->get($reference['field_value_id']);
 
-                if ($value === null) {
-                    continue;
+                    if ($value === null) {
+                        continue;
+                    }
+
+                    $mediaIds = collect([$value->media_id])
+                        ->merge($overrides->get($value->id, collect())->pluck('media_id'))
+                        ->unique();
+
+                    foreach ($mediaIds as $mediaId) {
+                        $rows[$mediaId . '|' . $value->id . '|' . $locale] = $this->row($mediaId, $value->id, $ownerType, $ownerId, $source, $revisionId, $locale, $now);
+                    }
+                } elseif (! empty($reference['media_id']) && isset($existingMedia[$reference['media_id']])) {
+                    $rows[$reference['media_id'] . '||' . $locale] = $this->row($reference['media_id'], null, $ownerType, $ownerId, $source, $revisionId, $locale, $now);
                 }
-
-                $mediaIds = collect([$value->media_id])
-                    ->merge($overrides->get($value->id, collect())->pluck('media_id'))
-                    ->unique();
-
-                foreach ($mediaIds as $mediaId) {
-                    $rows[] = $this->row($mediaId, $value->id, $ownerType, $ownerId, $source, $revisionId, $locale, $now);
-                }
-            } elseif (! empty($reference['media_id']) && isset($existingMedia[$reference['media_id']])) {
-                $rows[] = $this->row($reference['media_id'], null, $ownerType, $ownerId, $source, $revisionId, $locale, $now);
             }
-        }
 
-        DB::transaction(function () use ($ownerType, $ownerId, $source, $revisionId, $rows): void {
             $this->scope($ownerType, $ownerId, $source, $revisionId, exact: true)->delete();
 
-            foreach (array_chunk($rows, 200) as $chunk) {
+            foreach (array_chunk(array_values($rows), 200) as $chunk) {
                 MediaUsageRow::query()->insert($chunk);
             }
         });
@@ -186,9 +198,9 @@ class MediaUsage
             return [];
         }
 
-        $model = config('filament-media-manager.table_names.media', 'media_manager_media');
+        $table = config('filament-media-manager.table_names.media', 'media_manager_media');
 
-        return DB::table($model)->whereIn('id', $ids)->pluck('id')->mapWithKeys(fn ($id) => [(int) $id => true])->all();
+        return DB::table($table)->whereIn('id', $ids)->pluck('id')->mapWithKeys(fn ($id) => [(int) $id => true])->all();
     }
 
     protected function scope(string $ownerType, int | string $ownerId, ?UsageSource $source, ?int $revisionId, bool $exact = false): Builder
@@ -211,7 +223,7 @@ class MediaUsage
     }
 
     /** @return array<string, mixed> */
-    protected function row(int $mediaId, ?int $fieldValueId, string $ownerType, int | string $ownerId, UsageSource $source, ?int $revisionId, ?string $locale, $now): array
+    protected function row(int $mediaId, ?int $fieldValueId, string $ownerType, int | string $ownerId, UsageSource $source, ?int $revisionId, ?string $locale, CarbonInterface $now): array
     {
         return [
             'media_id' => $mediaId,
